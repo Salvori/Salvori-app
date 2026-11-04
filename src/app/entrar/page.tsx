@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { Cabecera } from "@/components/cabecera";
 import { rutaSegura, usuarioActual } from "@/lib/sesion";
 import { FormularioEntrar } from "./formulario";
+import { FormularioContrasena } from "./formulario-contrasena";
 
 export const metadata: Metadata = { title: "Entrar" };
 
@@ -20,6 +21,7 @@ async function Contenido({ searchParams }: { searchParams: Promise<{ next?: stri
         </p>
       )}
       <FormularioEntrar siguiente={siguiente} />
+      {process.env.SALVORI_ENTRADA_CONTRASENA === "1" && <FormularioContrasena siguiente={siguiente} />}
     </>
   );
 }

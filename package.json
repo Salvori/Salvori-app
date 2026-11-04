@@ -15,12 +15,14 @@
     "usuarios:prueba": "node --env-file=.env.local scripts/usuarios-prueba.mjs",
     "db:types": "supabase gen types typescript --project-id ekdpnsrigbpdnbwioozv --schema public > src/lib/database.types.ts",
     "demo:crear": "node --env-file=.env.local scripts/oferta-demo.mjs crear",
-    "demo:borrar": "node --env-file=.env.local scripts/oferta-demo.mjs borrar"
+    "demo:borrar": "node --env-file=.env.local scripts/oferta-demo.mjs borrar",
+    "demo:negocio": "node --env-file=.env.local scripts/oferta-demo.mjs negocio"
   },
   "dependencies": {
     "@hookform/resolvers": "^7.0.2",
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.118.0",
+    "browser-image-compression": "^2.0.2",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.5.2",
     "leaflet": "^1.9.4",

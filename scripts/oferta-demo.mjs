@@ -1,5 +1,5 @@
 // Oferta de demostración VISIBLE en staging, para probar el flujo desde el celular.
-// Uso: npm run demo:crear   ·   npm run demo:borrar
+// Uso: npm run demo:crear (negocio + oferta) · npm run demo:negocio (solo negocio) · npm run demo:borrar
 // Solo staging. El negocio demo queda con negocio.prueba@salvori.test como miembro.
 import { createClient } from "@supabase/supabase-js";
 
@@ -27,11 +27,11 @@ async function borrar() {
   console.log("✓ Demo borrada.");
 }
 
-async function crear() {
+async function crear(conOferta = true) {
   await borrar();
   const { data: n, error } = await db
     .from("negocios")
-    .insert({ nombre: "Panadería Demo (staging)", slug: SLUG, categoria: "panaderia_pasteleria", direccion: "Parque Caldas, Popayán", lat: 2.4421, lng: -76.6062, horario: { "lun-dom": "06:00-20:00" } })
+    .insert({ nombre: "Panadería La Esquina (demo)", slug: SLUG, categoria: "panaderia_pasteleria", direccion: "Parque Caldas, Popayán", lat: 2.4421, lng: -76.6062, horario: { "lun-dom": "06:00-20:00" } })
     .select("id")
     .single();
   if (error) throw error;
@@ -40,6 +40,7 @@ async function crear() {
   const dueno = lista?.users.find((u) => u.email === "negocio.prueba@salvori.test");
   if (dueno) await db.from("negocio_miembros").insert({ negocio_id: n.id, user_id: dueno.id });
 
+  if (!conOferta) return console.log("✓ Negocio demo listo, sin ofertas (negocio.prueba@salvori.test es miembro).");
   const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP4+8/qPwAHrgLH0Qq4oAAAAABJRU5ErkJggg==", "base64");
   await db.storage.from("ofertas").upload(`${n.id}/demo.png`, png, { contentType: "image/png", upsert: true });
 
@@ -65,5 +66,6 @@ async function crear() {
 }
 
 if (accion === "crear") await crear();
+else if (accion === "negocio") await crear(false);
 else if (accion === "borrar") await borrar();
-else console.log("Uso: node scripts/oferta-demo.mjs crear|borrar");
+else console.log("Uso: node scripts/oferta-demo.mjs crear|negocio|borrar");
