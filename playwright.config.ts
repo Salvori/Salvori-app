@@ -1,5 +1,10 @@
 import { defineConfig, devices } from "@playwright/test";
 
+// Claves de staging para las pruebas del flujo (si existen).
+try {
+  process.loadEnvFile(".env.local");
+} catch {}
+
 const PORT = 3100;
 
 export default defineConfig({

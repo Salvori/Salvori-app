@@ -1,6 +1,6 @@
 # Backend de Salvori (Supabase)
 
-Esquema en `supabase/migrations/`. Las cuatro primeras migraciones vienen del prototipo de Lovable (28 oct, probadas con 31 pruebas) y se portaron sin cambios. La quinta (`storage_y_tareas`) agrega el bucket y las tareas programadas. Nunca se edita una migración ya aplicada: cada cambio va en una nueva (`supabase migration new …`) y después se regeneran los tipos (`npm run db:types`).
+Esquema en `supabase/migrations/`. La migración `comprador` (P2) agrega `mis_reservas`, `resumen_calificaciones` y la tabla `reservas` a Supabase Realtime. Las cuatro primeras migraciones vienen del prototipo de Lovable (28 oct, probadas con 31 pruebas) y se portaron sin cambios. La quinta (`storage_y_tareas`) agrega el bucket y las tareas programadas. Nunca se edita una migración ya aplicada: cada cambio va en una nueva (`supabase migration new …`) y después se regeneran los tipos (`npm run db:types`).
 
 | Entorno | Proyecto | Cómo se aplica |
 |---|---|---|
@@ -31,6 +31,8 @@ Los datos con `es_prueba = true` nunca salen en el catálogo público.
 | `reservas_negocio(negocio_id)` | Miembro del negocio, admin | Bandeja del negocio: nombre del comprador, código y observaciones, **sin** correo ni teléfono |
 | `ahorro_comprador(uid)` | El propio comprador, admin | Suma (habitual − final) × cantidad de las reservas **entregadas** |
 | `calificaciones_negocio(negocio_id)` | Cualquiera | Calificaciones públicas de un negocio activo |
+| `mis_reservas()` | Comprador | Sus reservas con título, foto y datos del negocio, aunque la oferta ya haya cerrado (P2) |
+| `resumen_calificaciones(negocio_ids)` | Cualquiera | Promedio y total por negocio para las tarjetas (P2) |
 | `registrar_vista(oferta_id, origen)` | Cualquiera | Evento `view_item` |
 | `has_role(uid, rol)`, `es_miembro_negocio(negocio)` | Políticas RLS | Verificación de rol y membresía (`security definer`) |
 | `puede_escribir_foto(nombre)` | Políticas de Storage | Ruta `<negocio_id>/<archivo>.(jpg\|jpeg\|png\|webp\|avif)` de un negocio propio |

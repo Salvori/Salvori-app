@@ -21,7 +21,11 @@ npm run dev                  # http://localhost:3000
 | `npm run lint` | ESLint |
 | `npm run typecheck` | Genera los tipos de rutas y corre `tsc --noEmit` |
 | `npm test` | Vitest (`tests/unit`, `tests/db`) |
-| `npm run test:e2e` | Playwright (`tests/e2e`); la primera vez: `npx playwright install chromium` |
+| `npm run test:db` | Pruebas de base de datos contra staging (`tests/db`) |
+| `npm run test:e2e` | Playwright (`tests/e2e`); la primera vez: `npx playwright install chromium`. El flujo del comprador necesita `.env.local` de staging |
+| `npm run usuarios:prueba` | Crea los 3 usuarios de prueba de staging |
+| `npm run demo:crear` / `demo:borrar` | Oferta visible de demostración en staging (8 h) |
+| `npm run db:types` | Regenera `src/lib/database.types.ts` |
 
 ## Entornos
 
