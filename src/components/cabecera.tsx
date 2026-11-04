@@ -1,21 +1,32 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { Marca } from "@/components/marca";
-import { usuarioActual } from "@/lib/sesion";
+import { rolesActuales } from "@/lib/roles";
 
 const pildora =
   "rounded-full bg-secondary px-4 py-1.5 text-sm font-semibold text-secondary-foreground transition-colors hover:bg-secondary/70";
 
 async function Acceso() {
-  const usuario = await usuarioActual();
-  return usuario ? (
-    <Link href="/mis-reservas" className={pildora}>
-      Mis reservas
-    </Link>
-  ) : (
-    <Link href="/entrar" className={pildora}>
-      Entrar
-    </Link>
+  const { usuario, roles } = await rolesActuales();
+  if (!usuario) {
+    return (
+      <Link href="/entrar" className={pildora}>
+        Entrar
+      </Link>
+    );
+  }
+  const operador = roles.includes("negocio") || roles.includes("admin");
+  return (
+    <nav className="flex gap-2">
+      {operador && (
+        <Link href="/negocio" className="rounded-full bg-primary px-4 py-1.5 text-sm font-semibold text-primary-foreground">
+          Mi negocio
+        </Link>
+      )}
+      <Link href="/mis-reservas" className={pildora}>
+        Mis reservas
+      </Link>
+    </nav>
   );
 }
 
