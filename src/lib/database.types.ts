@@ -434,6 +434,33 @@ export type Database = {
         Args: { rol: Database["public"]["Enums"]["app_role"]; uid: string }
         Returns: boolean
       }
+      mis_reservas: {
+        Args: never
+        Returns: {
+          calificada: boolean
+          cantidad: number
+          codigo: string
+          confirmada_en: string
+          entregada_en: string
+          estado: Database["public"]["Enums"]["estado_reserva"]
+          foto_url: string
+          id: string
+          lista_en: string
+          metodo_pago: Database["public"]["Enums"]["metodo_pago"]
+          motivo_rechazo: string
+          negocio_direccion: string
+          negocio_id: string
+          negocio_nombre: string
+          observaciones: string
+          oferta_id: string
+          precio_habitual_unitario: number
+          precio_unitario: number
+          recogida_desde: string
+          recogida_hasta: string
+          solicitada_en: string
+          titulo: string
+        }[]
+      }
       oferta_tiene_reservas: { Args: { oferta: string }; Returns: boolean }
       publicar_programadas: { Args: never; Returns: number }
       puede_escribir_foto: { Args: { nombre: string }; Returns: boolean }
@@ -461,6 +488,14 @@ export type Database = {
           recogida_hasta: string
           solicitada_en: string
           titulo: string
+        }[]
+      }
+      resumen_calificaciones: {
+        Args: { negocio_ids: string[] }
+        Returns: {
+          negocio_id: string
+          promedio: number
+          total: number
         }[]
       }
       solicitar_reserva: {

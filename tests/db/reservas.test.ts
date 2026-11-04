@@ -172,4 +172,17 @@ describe.skipIf(!hayStaging)("reservas en staging", { timeout: 60_000 }, () => {
     expect(data?.estado).toBe("no_recogida");
     expect(data?.no_recogida_en).not.toBeNull();
   });
+  it("mis_reservas devuelve solo las propias, con la oferta y el negocio", async () => {
+    const [a, b, dueno] = await Promise.all([esc.usuario("comprador"), esc.usuario("comprador"), esc.usuario("negocio")]);
+    const oferta = await esc.oferta(await esc.negocio(dueno));
+    const r = await reservar(a, oferta, 2);
+
+    const { data: propias, error } = await a.db.rpc("mis_reservas");
+    expect(error).toBeNull();
+    expect(propias).toHaveLength(1);
+    expect(propias[0]).toMatchObject({ id: r.data.id, cantidad: 2, titulo: "Oferta de prueba", estado: "solicitada", codigo: null });
+
+    const { data: ajenas } = await b.db.rpc("mis_reservas");
+    expect(ajenas).toEqual([]);
+  });
 });

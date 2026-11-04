@@ -29,6 +29,7 @@
   --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
+  --color-mandarina-texto: var(--mandarina-texto);
   --color-destructive: var(--destructive);
   --color-border: var(--border);
   --color-input: var(--input);
@@ -71,6 +72,8 @@
   --muted-foreground: #56605a;
   --accent: var(--mandarina);
   --accent-foreground: var(--carbon);
+  /* Mandarina oscura para texto sobre fondos claros (contraste AA). */
+  --mandarina-texto: #a8460f;
   --destructive: oklch(0.577 0.245 27.325);
   --border: #dcdccb;
   --input: #dcdccb;
