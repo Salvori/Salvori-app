@@ -8,9 +8,12 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "next typegen && tsc --noEmit",
-    "test": "vitest run",
+    "test": "vitest run tests/unit",
     "test:watch": "vitest",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:db": "vitest run tests/db",
+    "usuarios:prueba": "node --env-file=.env.local scripts/usuarios-prueba.mjs",
+    "db:types": "supabase gen types typescript --project-id ekdpnsrigbpdnbwioozv --schema public > src/lib/database.types.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^7.0.2",

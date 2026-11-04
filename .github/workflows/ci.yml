@@ -27,3 +27,32 @@ jobs:
         run: npm run typecheck
       - name: Pruebas unitarias
         run: npm test
+
+  base-de-datos:
+    name: Pruebas de base de datos (staging)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # Los secretos no llegan a PR desde forks: ahí se salta.
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    concurrency:
+      group: db-staging
+      cancel-in-progress: false
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.STAGING_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.STAGING_SUPABASE_ANON_KEY }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Verificar secretos
+        run: |
+          if [ -z "$NEXT_PUBLIC_SUPABASE_URL" ] || [ -z "$NEXT_PUBLIC_SUPABASE_ANON_KEY" ] || [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
+            echo "::error::Faltan los secretos STAGING_SUPABASE_* del repositorio."
+            exit 1
+          fi
+      - name: Pruebas de base de datos
+        run: npm run test:db
