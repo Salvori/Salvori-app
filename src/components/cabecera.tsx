@@ -10,9 +10,17 @@ async function Acceso() {
   const { usuario, roles } = await rolesActuales();
   if (!usuario) {
     return (
-      <Link href="/entrar" className={pildora}>
-        Entrar
-      </Link>
+      <nav className="flex gap-2">
+        <Link
+          href="/entrar?next=/negocio"
+          className="rounded-full border border-primary/30 bg-card px-3.5 py-1.5 text-sm font-semibold text-primary"
+        >
+          Tengo un negocio
+        </Link>
+        <Link href="/entrar" className={pildora}>
+          Entrar
+        </Link>
+      </nav>
     );
   }
   const operador = roles.includes("negocio") || roles.includes("admin");

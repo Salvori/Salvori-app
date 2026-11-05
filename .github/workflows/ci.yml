@@ -56,3 +56,18 @@ jobs:
           fi
       - name: Pruebas de base de datos
         run: npm run test:db
+
+  demo-e2e:
+    name: Demo de frontend (Playwright)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Portada y demo
+        run: npx playwright test tests/e2e/portada.spec.ts tests/e2e/demo.spec.ts

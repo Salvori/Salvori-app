@@ -15,6 +15,9 @@ async function Catalogo() {
           <MapPin className="size-4" aria-hidden />
           Muy pronto en Popayán
         </p>
+        <a href="/demo" className="ml-3 inline-block rounded-full bg-primary px-5 py-2 font-display font-bold text-primary-foreground">
+          Ver la demo
+        </a>
       </div>
     );
   }
@@ -43,8 +46,14 @@ export default function Portada() {
             se aprovecha.
           </h1>
           <p className="mt-4 max-w-lg text-lg text-muted-foreground">
-            Reserva ofertas de negocios cerca de ti, con foto real, precio y horario claros antes de decidir.
+            Reserva combos de negocios cerca de ti, con foto real, precio y horario claros. Pagas al recogerlo.
           </p>
+          <a
+            href="#titulo-ofertas"
+            className="mt-5 inline-flex rounded-full bg-accent px-6 py-3 font-display text-lg font-extrabold text-accent-foreground shadow-card"
+          >
+            Reservar un combo ↓
+          </a>
         </section>
         <Suspense fallback={<CargandoCatalogo />}>
           <Catalogo />

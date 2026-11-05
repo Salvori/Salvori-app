@@ -9,7 +9,9 @@ const PORT = 3100;
 
 export default defineConfig({
   testDir: "./tests/e2e",
-  fullyParallel: true,
+  // En serie: las pruebas de staging comparten los mismos usuarios de prueba.
+  fullyParallel: false,
+  workers: 1,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? "github" : "list",
