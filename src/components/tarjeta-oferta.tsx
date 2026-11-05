@@ -69,7 +69,7 @@ export function TarjetaOferta({ oferta, km, prioridad = false }: { oferta: Ofert
             href={`/oferta/${oferta.id}`}
             className="mt-5 rounded-full bg-primary py-2.5 text-center font-display font-bold text-primary-foreground transition-colors hover:bg-primary/90"
           >
-            Reservar
+            Reservar combo
           </Link>
         )}
       </div>
