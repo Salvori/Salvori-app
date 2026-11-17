@@ -11,6 +11,7 @@ import { horaCorta, textoDias } from "@/lib/programacion";
 import { cambiarProgramacion, cerrarOferta } from "../acciones";
 import { contextoNegocio } from "../contexto";
 import { NavegacionNegocio } from "../navegacion";
+import { EditarCupos } from "./editar-cupos";
 import { ProgramarOferta } from "./programar";
 
 export const metadata: Metadata = { title: "Mis ofertas" };
@@ -34,10 +35,14 @@ async function Lista({ searchParams }: { searchParams: Promise<{ n?: string; pub
     .order("creado_en", { ascending: false });
   const porOferta = new Map((programadas ?? []).map((p) => [p.plantilla_oferta_id, p]));
   const ahora = instanteActual();
-  const ofertas = (data ?? []).map((o) => ({
-    ...o,
-    vigente: ["activa", "agotada"].includes(o.estado) && new Date(o.recogida_hasta).getTime() > ahora,
-  }));
+  const ofertas = await Promise.all(
+    (data ?? []).map(async (o) => {
+      const vigente = ["activa", "agotada"].includes(o.estado) && new Date(o.recogida_hasta).getTime() > ahora;
+      // El negocio no lee la tabla reservas: pregunta por la función (solo las vigentes).
+      const sinReservas = vigente && o.estado === "activa" ? (await supabase.rpc("oferta_tiene_reservas", { oferta: o.id })).data === false : false;
+      return { ...o, vigente, sinReservas };
+    }),
+  );
 
   return (
     <>
@@ -85,7 +90,7 @@ async function Lista({ searchParams }: { searchParams: Promise<{ n?: string; pub
           {ofertas.map((o) => {
             const foto = urlFoto(o.foto_url);
             return (
-              <li key={o.id} className={`flex gap-3 rounded-2xl bg-card p-3 shadow-card ${o.vigente ? "" : "opacity-60"}`}>
+              <li key={o.id} data-oferta={o.id} className={`flex gap-3 rounded-2xl bg-card p-3 shadow-card ${o.vigente ? "" : "opacity-60"}`}>
                 <div className="relative size-20 shrink-0 overflow-hidden rounded-xl bg-muted">
                   {foto && <Image src={foto} alt="" fill sizes="80px" className="object-cover" />}
                 </div>
@@ -97,12 +102,18 @@ async function Lista({ searchParams }: { searchParams: Promise<{ n?: string; pub
                   <p className="text-xs text-muted-foreground">
                     {o.vigente ? ESTADO[o.estado] : "Cerrada"} · {o.cupos_disponibles}/{o.cupos_total} cupos · {textoVentana(o.recogida_desde, o.recogida_hasta)}
                   </p>
-                  {o.vigente && (
-                    <form action={cerrarOferta} className="mt-1">
-                      <input type="hidden" name="ofertaId" value={o.id} />
-                      <button className="text-xs font-semibold text-destructive underline underline-offset-4">Cerrar oferta</button>
-                    </form>
-                  )}
+                  <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1">
+                    <Link href={`/negocio/publicar?n=${negocio.slug}&desde=${o.id}`} className="text-xs font-semibold text-primary underline underline-offset-4">
+                      Duplicar
+                    </Link>
+                    {o.vigente && (
+                      <form action={cerrarOferta}>
+                        <input type="hidden" name="ofertaId" value={o.id} />
+                        <button className="text-xs font-semibold text-destructive underline underline-offset-4">Cerrar oferta</button>
+                      </form>
+                    )}
+                  </div>
+                  {o.sinReservas && <EditarCupos ofertaId={o.id} cupos={o.cupos_total} />}
                   <ProgramarOferta
                     ofertaId={o.id}
                     horaInicial={porOferta.has(o.id) ? horaCorta(porOferta.get(o.id)!.hora_publicacion) : formatHora(o.recogida_desde)}

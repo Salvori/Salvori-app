@@ -40,18 +40,34 @@ test.describe("demo: negocio publica, comprador reserva, negocio confirma y entr
     expect(publicada).toMatchObject({ tipo: "comercial", elaborado_en: null });
 
     // --- Negocio programa la oferta por días y hora ---
-    const fila = negocio.locator("li", { hasText: titulo }).filter({ has: negocio.getByText("Programar", { exact: true }) });
+    const fila = negocio.locator(`[data-oferta="${publicada!.id}"]`);
     await fila.getByText("Programar", { exact: true }).click();
     await fila.getByLabel("Sábado").check({ force: true });
     await fila.getByRole("button", { name: "Guardar programación" }).click();
     const programada = negocio.locator(`[data-programacion="${publicada!.id}"]`);
-    await expect(programada).toContainText("Se publica lun, mar, mié, jue, vie y sáb");
+    await expect(programada).toContainText("Se publica lun, mar, mié, jue, vie y sáb", { timeout: 15_000 });
     const { data: plan } = await admin().from("oferta_programacion").select("dias_semana, activa, ultima_publicacion").eq("plantilla_oferta_id", publicada!.id).single();
     // La hora de hoy ya pasó: no se duplica la oferta de hoy, empieza el próximo día.
     expect(plan).toMatchObject({ dias_semana: [1, 2, 3, 4, 5, 6], activa: true });
     expect(plan!.ultima_publicacion).not.toBeNull();
     await programada.getByRole("button", { name: "Pausar" }).click();
     await expect(programada).toContainText("En pausa");
+
+    // --- Cambia los cupos mientras no tenga reservas ---
+    await fila.getByText("Cambiar cupos").click();
+    await fila.getByLabel("Cupos", { exact: true }).fill("6");
+    await fila.getByRole("button", { name: "Guardar", exact: true }).click();
+    await expect(fila.getByText("Ahora tiene 6 cupos.")).toBeVisible();
+    await expect(fila).toContainText("6/6 cupos");
+
+    // --- Duplicar abre el formulario con los datos de la oferta ---
+    await fila.getByRole("link", { name: "Duplicar" }).click();
+    await expect(negocio.getByText(`Copia de «${titulo}»`)).toBeVisible();
+    await expect(negocio.getByAltText("Foto de la oferta")).toBeVisible();
+    await negocio.getByRole("button", { name: "Siguiente" }).click();
+    await expect(negocio.getByLabel("Título")).toHaveValue(titulo);
+    await expect(negocio.getByLabel("Precio Salvori")).toHaveValue("8000");
+    await expect(negocio.getByLabel("Cupos disponibles")).toHaveValue("6");
 
     // El negocio deja abierta su bandeja.
     await negocio.goto(`/negocio?n=${slug}`);

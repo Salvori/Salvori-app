@@ -16,32 +16,48 @@ function horaBogota(offsetMin = 0): string {
   return new Intl.DateTimeFormat("es-CO", { timeZone: "America/Bogota", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(d);
 }
 
+/** Datos de una oferta anterior para publicarla de nuevo («Duplicar»). */
+export type OfertaInicial = {
+  foto: { ruta: string; vista: string };
+  titulo: string;
+  contenido: string;
+  categoria: string;
+  precioHabitual: string;
+  precioFinal: string;
+  cupos: string;
+  desde?: string;
+  hasta?: string;
+  preparacion: string;
+};
+
 export function FormularioPublicar({
   negocioId,
   slug,
   negocioNombre,
   destino = "negocio",
+  inicial,
 }: {
   negocioId: string;
   slug: string;
   negocioNombre: string;
   destino?: "negocio" | "admin";
+  inicial?: OfertaInicial;
 }) {
   const [estado, accion, enviando] = useActionState<EstadoPublicar, FormData>(publicarOferta, null);
   const [paso, setPaso] = useState(1);
-  const [foto, setFoto] = useState<{ ruta: string; vista: string } | null>(null);
+  const [foto, setFoto] = useState<{ ruta: string; vista: string } | null>(inicial?.foto ?? null);
   const [subiendo, setSubiendo] = useState(false);
   const [errorFoto, setErrorFoto] = useState<string | null>(null);
   const [f, setF] = useState({
-    titulo: "",
-    contenido: "",
-    categoria: "panaderia_pasteleria",
-    precioHabitual: "",
-    precioFinal: "",
-    cupos: "5",
-    desde: horaBogota(),
-    hasta: horaBogota(120),
-    preparacion: "10",
+    titulo: inicial?.titulo ?? "",
+    contenido: inicial?.contenido ?? "",
+    categoria: inicial?.categoria ?? "panaderia_pasteleria",
+    precioHabitual: inicial?.precioHabitual ?? "",
+    precioFinal: inicial?.precioFinal ?? "",
+    cupos: inicial?.cupos ?? "5",
+    desde: inicial?.desde ?? horaBogota(),
+    hasta: inicial?.hasta ?? horaBogota(120),
+    preparacion: inicial?.preparacion ?? "10",
   });
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
     setF((v) => ({ ...v, [k]: e.target.value }));
