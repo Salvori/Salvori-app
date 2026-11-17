@@ -16,14 +16,23 @@ function horaBogota(offsetMin = 0): string {
   return new Intl.DateTimeFormat("es-CO", { timeZone: "America/Bogota", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(d);
 }
 
-export function FormularioPublicar({ negocioId, slug, negocioNombre }: { negocioId: string; slug: string; negocioNombre: string }) {
+export function FormularioPublicar({
+  negocioId,
+  slug,
+  negocioNombre,
+  destino = "negocio",
+}: {
+  negocioId: string;
+  slug: string;
+  negocioNombre: string;
+  destino?: "negocio" | "admin";
+}) {
   const [estado, accion, enviando] = useActionState<EstadoPublicar, FormData>(publicarOferta, null);
   const [paso, setPaso] = useState(1);
   const [foto, setFoto] = useState<{ ruta: string; vista: string } | null>(null);
   const [subiendo, setSubiendo] = useState(false);
   const [errorFoto, setErrorFoto] = useState<string | null>(null);
   const [f, setF] = useState({
-    tipo: "comercial" as "comercial" | "lote",
     titulo: "",
     contenido: "",
     categoria: "panaderia_pasteleria",
@@ -33,7 +42,6 @@ export function FormularioPublicar({ negocioId, slug, negocioNombre }: { negocio
     desde: horaBogota(),
     hasta: horaBogota(120),
     preparacion: "10",
-    elaborado: horaBogota(-60),
   });
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
     setF((v) => ({ ...v, [k]: e.target.value }));
@@ -76,6 +84,7 @@ export function FormularioPublicar({ negocioId, slug, negocioNombre }: { negocio
     <form action={accion} className="flex flex-col gap-5">
       <input type="hidden" name="negocioId" value={negocioId} />
       <input type="hidden" name="slug" value={slug} />
+      <input type="hidden" name="destino" value={destino} />
       <input type="hidden" name="foto" value={foto?.ruta ?? ""} />
       {Object.entries(f).map(([k, v]) => (
         <input key={k} type="hidden" name={k} value={v} />
@@ -134,26 +143,7 @@ export function FormularioPublicar({ negocioId, slug, negocioNombre }: { negocio
 
       {paso === 2 && (
         <section className="flex flex-col gap-4">
-          <h2 className="font-display text-xl font-extrabold text-primary">Qué es y cuánto cuesta</h2>
-          <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Tipo de oferta">
-            {(
-              [
-                ["comercial", "Promoción o combo"],
-                ["lote", "Producto del día"],
-              ] as const
-            ).map(([v, t]) => (
-              <button
-                key={v}
-                type="button"
-                role="radio"
-                aria-checked={f.tipo === v}
-                onClick={() => setF((x) => ({ ...x, tipo: v }))}
-                className={`rounded-2xl border-2 px-3 py-3 text-sm font-bold ${f.tipo === v ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card"}`}
-              >
-                {t}
-              </button>
-            ))}
-          </div>
+          <h2 className="font-display text-xl font-extrabold text-primary">Tu promoción o combo</h2>
           <label className={etiqueta}>
             Título
             <input value={f.titulo} onChange={set("titulo")} maxLength={80} placeholder="Ej.: Combo 6 panes de bono" className={campo} />
@@ -218,17 +208,10 @@ export function FormularioPublicar({ negocioId, slug, negocioNombre }: { negocio
               <input type="time" value={f.hasta} onChange={set("hasta")} className={campo} />
             </label>
           </div>
-          {f.tipo === "comercial" ? (
-            <label className={etiqueta}>
-              Minutos de preparación después de confirmar
-              <input type="number" min={0} max={240} value={f.preparacion} onChange={set("preparacion")} className={campo} />
-            </label>
-          ) : (
-            <label className={etiqueta}>
-              Elaborado hoy a las
-              <input type="time" value={f.elaborado} onChange={set("elaborado")} className={campo} />
-            </label>
-          )}
+          <label className={etiqueta}>
+            Minutos de preparación después de confirmar
+            <input type="number" min={0} max={240} value={f.preparacion} onChange={set("preparacion")} className={campo} />
+          </label>
 
           {/* Vista previa de la tarjeta */}
           <div className="overflow-hidden rounded-2xl bg-card shadow-card" aria-label="Vista previa">

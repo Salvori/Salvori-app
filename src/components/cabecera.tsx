@@ -26,6 +26,11 @@ async function Acceso() {
   const operador = roles.includes("negocio") || roles.includes("admin");
   return (
     <nav className="flex gap-2">
+      {roles.includes("admin") && (
+        <Link href="/admin" className="rounded-full border border-primary/30 bg-card px-3.5 py-1.5 text-sm font-semibold text-primary">
+          Admin
+        </Link>
+      )}
       {operador && (
         <Link href="/negocio" className="rounded-full bg-primary px-4 py-1.5 text-sm font-semibold text-primary-foreground">
           Mi negocio

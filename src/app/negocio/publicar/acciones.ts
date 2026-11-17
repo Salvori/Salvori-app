@@ -26,7 +26,6 @@ const esquema = z
     negocioId: z.uuid(),
     slug: z.string(),
     foto: z.string().min(1, "Agrega una foto real del producto."),
-    tipo: z.enum(["comercial", "lote"]),
     titulo: z.string().trim().min(3, "Escribe un título.").max(80),
     contenido: z.string().trim().min(5, "Describe exactamente qué recibe el comprador.").max(500),
     categoria: z.enum(CATEGORIAS),
@@ -36,13 +35,10 @@ const esquema = z
     desde: z.string().regex(HORA, "Hora de inicio no válida."),
     hasta: z.string().regex(HORA, "Hora de fin no válida."),
     preparacion: z.coerce.number().int().min(0).max(240).optional(),
-    elaborado: z.string().optional(),
+    // «admin» cuando el equipo publica a nombre del negocio desde /admin/publicar.
+    destino: z.enum(["negocio", "admin"]).default("negocio"),
   })
-  .refine((d) => d.precioFinal < d.precioHabitual, { message: "El precio final debe ser menor que el habitual.", path: ["precioFinal"] })
-  .refine((d) => d.tipo !== "lote" || (d.elaborado && HORA.test(d.elaborado)), {
-    message: "Indica a qué hora se elaboró el producto del día.",
-    path: ["elaborado"],
-  });
+  .refine((d) => d.precioFinal < d.precioHabitual, { message: "El precio final debe ser menor que el habitual.", path: ["precioFinal"] });
 
 /** Fecha de hoy en Bogotá + hora local → ISO con zona -05:00. */
 function hoyALas(hora: string, diasExtra = 0): string {
@@ -74,7 +70,7 @@ export async function publicarOferta(_p: EstadoPublicar, form: FormData): Promis
 
   const { error } = await supabase.from("ofertas").insert({
     negocio_id: d.negocioId,
-    tipo: d.tipo,
+    tipo: "comercial", // carril solo comercial (decisión del 14 nov)
     titulo: d.titulo,
     contenido: d.contenido,
     categoria: d.categoria,
@@ -85,13 +81,13 @@ export async function publicarOferta(_p: EstadoPublicar, form: FormData): Promis
     cupos_disponibles: d.cupos,
     recogida_desde: desde,
     recogida_hasta: hasta,
-    tiempo_preparacion_min: d.tipo === "comercial" ? (d.preparacion ?? null) : null,
-    elaborado_en: d.tipo === "lote" && d.elaborado ? hoyALas(d.elaborado) : null,
+    tiempo_preparacion_min: d.preparacion ?? null,
     estado: "activa",
     publicada_por: usuario.id,
     es_prueba: negocio.es_prueba,
   });
   if (error) return { error: "No pudimos publicar la oferta. Revisa los datos e intenta de nuevo." };
 
-  redirect(`/negocio/ofertas?n=${encodeURIComponent(d.slug)}&publicada=1`);
+  const base = d.destino === "admin" ? "/admin/publicar" : "/negocio/ofertas";
+  redirect(`${base}?n=${encodeURIComponent(d.slug)}&publicada=1`);
 }

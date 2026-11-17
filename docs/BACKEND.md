@@ -85,7 +85,7 @@ on conflict do nothing;
 select u.email, r.role from public.user_roles r join auth.users u on u.id = r.user_id where r.role = 'admin';
 ```
 
-3. Para vincular a alguien como operador de un negocio:
+3. Para vincular a alguien como operador de un negocio, usa `/admin` → el negocio → **Usuarios del negocio** (P3). Si el correo aún no tiene cuenta, se crea y esa persona entra con el enlace mágico. La Server Action valida que quien llama sea admin y solo entonces usa la `service_role` (en el servidor) para escribir `user_roles`. Por SQL, en caso de emergencia:
 
 ```sql
 insert into public.user_roles (user_id, role)
@@ -97,6 +97,24 @@ select n.id, u.id from public.negocios n, auth.users u
 where n.slug = 'slug-del-negocio' and u.email = 'CORREO-DEL-NEGOCIO@dominio.com'
 on conflict do nothing;
 ```
+
+## Panel del negocio y admin (P3)
+
+- **Carril solo comercial** (14 nov): la interfaz crea todas las ofertas con `tipo = comercial`. El valor `lote` del enum y la columna `elaborado_en` siguen en la base de datos, sin uso.
+- **Programar** (`/negocio/ofertas` → Programar): guarda una fila en `oferta_programacion` con la oferta como plantilla. Una programación por oferta. Si la hora de hoy ya pasó al programar, se marca `ultima_publicacion = hoy` para no duplicar la oferta del día; la hora debe caer antes del fin de la ventana de recogida de la plantilla, o la tarea nunca publicaría.
+- **`/admin`** (rol admin, verificado en el layout, en cada página y en cada acción, además de RLS): negocios (crear, editar y usuarios), publicar a nombre de un negocio y reservas de todos los negocios con «Avisar por WhatsApp» (`wa.me`). No necesitó migración: usa las políticas de admin y `reservas_negocio` por negocio.
+
+## Correo al comprador (P3)
+
+Al **confirmar** o **rechazar** una reserva, la Server Action `gestionarReserva` envía un correo al comprador después de responder (`after`). El correo del comprador se lee con la `service_role` solo en el servidor; el negocio nunca lo ve.
+
+| Variable | Hoy (puente) | Después |
+|---|---|---|
+| `SMTP_HOST`, `SMTP_PORT` | `smtp.gmail.com`, `465` | Resend |
+| `SMTP_USER`, `SMTP_PASS` | Gmail de Salvori y su contraseña de aplicación | Resend |
+| `SMTP_FROM` | `Salvori <correo>` | Dirección del dominio `.co` |
+
+Van en Vercel (y en `.env.local` para probar), nunca en el repositorio. Si falta alguna, o falta `SUPABASE_SERVICE_ROLE_KEY`, el correo no sale, queda un aviso `[correo]` en el registro y la confirmación sigue su curso. Los destinatarios `*.test` (usuarios de prueba) se omiten.
 
 ## Pruebas
 
