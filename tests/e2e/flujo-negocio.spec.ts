@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { randomUUID } from "node:crypto";
-import { USUARIOS, admin, cookiesDeSesion, crearOfertaTemporal, hayStaging } from "./staging";
+import { USUARIOS, admin, cookiesDeSesion, crearOfertaTemporal, hayStaging, publicarEnTresPasos } from "./staging";
 
 test.describe("demo: negocio publica, comprador reserva, negocio confirma y entrega", () => {
   test.skip(!hayStaging, "Necesita .env.local de staging y los usuarios de prueba.");
@@ -14,11 +14,7 @@ test.describe("demo: negocio publica, comprador reserva, negocio confirma y entr
     slug = data!.slug;
   });
   test.afterAll(async () => {
-    // Borra también las fotos subidas desde el formulario.
-    const db = admin();
-    const { data: fotos } = await db.storage.from("ofertas").list(datos.negocioId);
-    if (fotos?.length) await db.storage.from("ofertas").remove(fotos.map((f) => `${datos.negocioId}/${f.name}`));
-    await datos?.borrar();
+    await datos?.borrar(); // también las fotos subidas desde el formulario
   });
 
   test("un comprador que abre /negocio vuelve a la portada", async ({ page, context, baseURL }) => {
@@ -36,28 +32,46 @@ test.describe("demo: negocio publica, comprador reserva, negocio confirma y entr
     await ctxNegocio.addCookies(await cookiesDeSesion(USUARIOS.negocio.email, USUARIOS.negocio.password, dominio));
     const negocio = await ctxNegocio.newPage();
 
-    // Foto: una imagen generada en el propio navegador.
-    await negocio.setContent('<div style="width:600px;height:450px;background:linear-gradient(135deg,#F57A35,#F8F5EA)"></div>');
-    const foto = await negocio.screenshot({ type: "png" });
-
     await negocio.goto(`/negocio/publicar?n=${slug}`);
-    await negocio.getByTestId("foto").setInputFiles({ name: "combo.png", mimeType: "image/png", buffer: foto });
-    await expect(negocio.getByAltText("Foto de la oferta")).toBeVisible({ timeout: 20_000 });
-    await negocio.getByRole("button", { name: "Siguiente" }).click();
-
-    await negocio.getByRole("radio", { name: "Promoción o combo" }).click();
-    await negocio.getByLabel("Título").fill(titulo);
-    await negocio.getByLabel("Qué recibe exactamente").fill("2 empanadas de pipián y una gaseosa personal");
-    await negocio.getByLabel("Precio habitual").fill("12000");
-    await negocio.getByLabel("Precio Salvori").fill("8000");
-    await expect(negocio.getByText("Descuento: 33%")).toBeVisible();
-    await negocio.getByLabel("Cupos disponibles").fill("4");
-    await negocio.getByRole("button", { name: "Siguiente" }).click();
-
-    await expect(negocio.getByLabel("Vista previa")).toContainText(titulo);
-    await negocio.getByRole("button", { name: "Publicar oferta" }).click();
+    await publicarEnTresPasos(negocio, titulo);
     await expect(negocio.getByText("¡Oferta publicada!")).toBeVisible();
     await expect(negocio.getByText(titulo)).toBeVisible();
+    const { data: publicada } = await admin().from("ofertas").select("id, tipo, elaborado_en").eq("titulo", titulo).single();
+    expect(publicada).toMatchObject({ tipo: "comercial", elaborado_en: null });
+
+    // --- Negocio programa la oferta por días y hora ---
+    const fila = negocio.locator(`[data-oferta="${publicada!.id}"]`);
+    await fila.getByText("Programar", { exact: true }).click();
+    await fila.getByLabel("Sábado").check({ force: true });
+    await fila.getByRole("button", { name: "Guardar programación" }).click();
+    const programada = negocio.locator(`[data-programacion="${publicada!.id}"]`);
+    await expect(programada).toContainText("Se publica lun, mar, mié, jue, vie y sáb", { timeout: 15_000 });
+    const { data: plan } = await admin().from("oferta_programacion").select("dias_semana, activa, ultima_publicacion").eq("plantilla_oferta_id", publicada!.id).single();
+    // La hora de hoy ya pasó: no se duplica la oferta de hoy, empieza el próximo día.
+    expect(plan).toMatchObject({ dias_semana: [1, 2, 3, 4, 5, 6], activa: true });
+    expect(plan!.ultima_publicacion).not.toBeNull();
+    await programada.getByRole("button", { name: "Pausar" }).click();
+    await expect(programada).toContainText("En pausa");
+
+    // --- Edita la oferta: cambia los cupos (aún sin reservas) ---
+    await fila.getByRole("link", { name: "Editar" }).click();
+    await negocio.getByRole("button", { name: "Siguiente" }).click();
+    await negocio.getByLabel("Cupos disponibles").fill("6");
+    await negocio.getByRole("button", { name: "Siguiente" }).click();
+    await negocio.getByRole("button", { name: "Guardar cambios" }).click();
+    await expect(negocio.getByText("Cambios guardados.")).toBeVisible({ timeout: 20_000 });
+    await expect(fila).toContainText("6/6 cupos");
+
+    // --- Duplicar abre el formulario con los datos de la oferta ---
+    await fila.getByRole("link", { name: "Duplicar" }).click();
+    await expect(negocio.getByText(`Copia de «${titulo}»`)).toBeVisible();
+    // Next guarda oculta la página de edición (mismo formulario): se mira solo la visible.
+    const copia = negocio.locator("main:visible");
+    await expect(copia.getByAltText("Foto de la oferta")).toBeVisible();
+    await copia.getByRole("button", { name: "Siguiente" }).click();
+    await expect(copia.getByLabel("Título")).toHaveValue(titulo);
+    await expect(copia.getByLabel("Precio Salvori")).toHaveValue("8000");
+    await expect(copia.getByLabel("Cupos disponibles")).toHaveValue("6");
 
     // El negocio deja abierta su bandeja.
     await negocio.goto(`/negocio?n=${slug}`);

@@ -5,8 +5,9 @@ import { useActionState, useMemo, useState } from "react";
 import { Camera, ChevronLeft, Clock, ImagePlus } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { formatCOP } from "@/lib/formato";
-import { CATEGORIA_LABEL, descuento } from "@/lib/ofertas";
-import { publicarOferta, type EstadoPublicar } from "./acciones";
+import { FORMATO_LABEL, FORMATOS, type Formato } from "@/lib/esquema-oferta";
+import { CATEGORIA_LABEL, descuento, textoDescuento } from "@/lib/ofertas";
+import { editarOferta, publicarOferta, type EstadoPublicar } from "./acciones";
 
 const campo = "rounded-xl border bg-background px-4 py-3 text-base outline-none focus-visible:ring-2 focus-visible:ring-ring";
 const etiqueta = "flex flex-col gap-1.5 font-semibold";
@@ -16,24 +17,54 @@ function horaBogota(offsetMin = 0): string {
   return new Intl.DateTimeFormat("es-CO", { timeZone: "America/Bogota", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(d);
 }
 
-export function FormularioPublicar({ negocioId, slug, negocioNombre }: { negocioId: string; slug: string; negocioNombre: string }) {
-  const [estado, accion, enviando] = useActionState<EstadoPublicar, FormData>(publicarOferta, null);
+/** Datos de una oferta anterior para publicarla de nuevo («Duplicar»). */
+export type OfertaInicial = {
+  foto: { ruta: string; vista: string };
+  formato?: Formato;
+  titulo: string;
+  contenido: string;
+  categoria: string;
+  precioHabitual: string;
+  precioFinal: string;
+  cupos: string;
+  desde?: string;
+  hasta?: string;
+  preparacion: string;
+};
+
+export function FormularioPublicar({
+  negocioId,
+  slug,
+  negocioNombre,
+  destino = "negocio",
+  inicial,
+  edicion,
+}: {
+  negocioId: string;
+  slug: string;
+  negocioNombre: string;
+  destino?: "negocio" | "admin";
+  inicial?: OfertaInicial;
+  /** Editar una oferta vigente en vez de publicar una nueva. */
+  edicion?: { ofertaId: string; reservados: number };
+}) {
+  const [estado, accion, enviando] = useActionState<EstadoPublicar, FormData>(edicion ? editarOferta : publicarOferta, null);
+  const minimoCupos = Math.max(1, edicion?.reservados ?? 0);
   const [paso, setPaso] = useState(1);
-  const [foto, setFoto] = useState<{ ruta: string; vista: string } | null>(null);
+  const [foto, setFoto] = useState<{ ruta: string; vista: string } | null>(inicial?.foto ?? null);
   const [subiendo, setSubiendo] = useState(false);
   const [errorFoto, setErrorFoto] = useState<string | null>(null);
   const [f, setF] = useState({
-    tipo: "comercial" as "comercial" | "lote",
-    titulo: "",
-    contenido: "",
-    categoria: "panaderia_pasteleria",
-    precioHabitual: "",
-    precioFinal: "",
-    cupos: "5",
-    desde: horaBogota(),
-    hasta: horaBogota(120),
-    preparacion: "10",
-    elaborado: horaBogota(-60),
+    formato: (inicial?.formato ?? "combo") as Formato,
+    titulo: inicial?.titulo ?? "",
+    contenido: inicial?.contenido ?? "",
+    categoria: inicial?.categoria ?? "panaderia_pasteleria",
+    precioHabitual: inicial?.precioHabitual ?? "",
+    precioFinal: inicial?.precioFinal ?? "",
+    cupos: inicial?.cupos ?? "5",
+    desde: inicial?.desde ?? horaBogota(),
+    hasta: inicial?.hasta ?? horaBogota(120),
+    preparacion: inicial?.preparacion ?? "10",
   });
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
     setF((v) => ({ ...v, [k]: e.target.value }));
@@ -42,7 +73,7 @@ export function FormularioPublicar({ negocioId, slug, negocioNombre }: { negocio
   const final = Number(f.precioFinal) || 0;
   const pct = habitual > 0 && final > 0 && final < habitual ? descuento(final, habitual) : null;
 
-  const paso2Listo = f.titulo.trim().length >= 3 && f.contenido.trim().length >= 5 && pct !== null && Number(f.cupos) >= 1;
+  const paso2Listo = f.titulo.trim().length >= 3 && f.contenido.trim().length >= 5 && pct !== null && Number(f.cupos) >= minimoCupos;
 
   async function elegirFoto(e: React.ChangeEvent<HTMLInputElement>) {
     const archivo = e.target.files?.[0];
@@ -76,6 +107,8 @@ export function FormularioPublicar({ negocioId, slug, negocioNombre }: { negocio
     <form action={accion} className="flex flex-col gap-5">
       <input type="hidden" name="negocioId" value={negocioId} />
       <input type="hidden" name="slug" value={slug} />
+      <input type="hidden" name="destino" value={destino} />
+      {edicion && <input type="hidden" name="ofertaId" value={edicion.ofertaId} />}
       <input type="hidden" name="foto" value={foto?.ruta ?? ""} />
       {Object.entries(f).map(([k, v]) => (
         <input key={k} type="hidden" name={k} value={v} />
@@ -134,23 +167,18 @@ export function FormularioPublicar({ negocioId, slug, negocioNombre }: { negocio
 
       {paso === 2 && (
         <section className="flex flex-col gap-4">
-          <h2 className="font-display text-xl font-extrabold text-primary">Qué es y cuánto cuesta</h2>
-          <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Tipo de oferta">
-            {(
-              [
-                ["comercial", "Promoción o combo"],
-                ["lote", "Producto del día"],
-              ] as const
-            ).map(([v, t]) => (
+          <h2 className="font-display text-xl font-extrabold text-primary">Tu promoción o combo</h2>
+          <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Etiqueta de la oferta">
+            {FORMATOS.map((v) => (
               <button
                 key={v}
                 type="button"
                 role="radio"
-                aria-checked={f.tipo === v}
-                onClick={() => setF((x) => ({ ...x, tipo: v }))}
-                className={`rounded-2xl border-2 px-3 py-3 text-sm font-bold ${f.tipo === v ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card"}`}
+                aria-checked={f.formato === v}
+                onClick={() => setF((x) => ({ ...x, formato: v }))}
+                className={`rounded-2xl border-2 px-3 py-3 text-sm font-bold ${f.formato === v ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card"}`}
               >
-                {t}
+                {FORMATO_LABEL[v]}
               </button>
             ))}
           </div>
@@ -187,8 +215,14 @@ export function FormularioPublicar({ negocioId, slug, negocioNombre }: { negocio
           </p>
           <label className={etiqueta}>
             Cupos disponibles
-            <input value={f.cupos} onChange={set("cupos")} inputMode="numeric" type="number" min={1} max={200} className={campo} />
+            <input value={f.cupos} onChange={set("cupos")} inputMode="numeric" type="number" min={minimoCupos} max={200} className={campo} />
           </label>
+          {edicion && edicion.reservados > 0 && (
+            <p className="-mt-2 text-sm text-muted-foreground">
+              Ya hay {edicion.reservados} {edicion.reservados === 1 ? "cupo reservado" : "cupos reservados"}: no puedes dejar menos. Las reservas hechas
+              conservan su precio.
+            </p>
+          )}
           <div className="flex gap-3">
             <button type="button" onClick={() => setPaso(1)} className="flex items-center gap-1 rounded-full border px-4 py-3 font-bold">
               <ChevronLeft className="size-4" aria-hidden /> Atrás
@@ -218,17 +252,10 @@ export function FormularioPublicar({ negocioId, slug, negocioNombre }: { negocio
               <input type="time" value={f.hasta} onChange={set("hasta")} className={campo} />
             </label>
           </div>
-          {f.tipo === "comercial" ? (
-            <label className={etiqueta}>
-              Minutos de preparación después de confirmar
-              <input type="number" min={0} max={240} value={f.preparacion} onChange={set("preparacion")} className={campo} />
-            </label>
-          ) : (
-            <label className={etiqueta}>
-              Elaborado hoy a las
-              <input type="time" value={f.elaborado} onChange={set("elaborado")} className={campo} />
-            </label>
-          )}
+          <label className={etiqueta}>
+            Minutos de preparación después de confirmar
+            <input type="number" min={0} max={240} value={f.preparacion} onChange={set("preparacion")} className={campo} />
+          </label>
 
           {/* Vista previa de la tarjeta */}
           <div className="overflow-hidden rounded-2xl bg-card shadow-card" aria-label="Vista previa">
@@ -237,9 +264,12 @@ export function FormularioPublicar({ negocioId, slug, negocioNombre }: { negocio
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={foto.vista} alt="" className="size-full object-cover" />
               )}
+              <span className="absolute left-3 top-3 rounded-full bg-primary px-2.5 py-0.5 text-xs font-bold uppercase tracking-wide text-primary-foreground">
+                {FORMATO_LABEL[f.formato]}
+              </span>
               {pct !== null && (
                 <span className="absolute right-3 top-3 rounded-full bg-accent px-2.5 py-0.5 font-display text-sm font-extrabold text-accent-foreground">
-                  -{pct}%
+                  {textoDescuento(final, habitual)}
                 </span>
               )}
             </div>
@@ -251,7 +281,7 @@ export function FormularioPublicar({ negocioId, slug, negocioNombre }: { negocio
                 <span className="text-sm text-muted-foreground line-through">{formatCOP(habitual)}</span>
               </p>
               <p className="mt-1 flex items-center gap-1 text-sm text-muted-foreground">
-                <Clock className="size-4" aria-hidden /> Recoge de {f.desde} a {f.hasta} · Quedan {f.cupos}
+                <Clock className="size-4" aria-hidden /> Recoge de {f.desde} a {f.hasta} · Quedan {Math.max(0, Number(f.cupos) - (edicion?.reservados ?? 0))}
               </p>
             </div>
           </div>
@@ -270,7 +300,7 @@ export function FormularioPublicar({ negocioId, slug, negocioNombre }: { negocio
               disabled={enviando}
               className="flex-1 rounded-full bg-accent py-3 font-display text-lg font-extrabold text-accent-foreground disabled:opacity-50"
             >
-              {enviando ? "Publicando…" : "Publicar oferta"}
+              {edicion ? (enviando ? "Guardando…" : "Guardar cambios") : enviando ? "Publicando…" : "Publicar oferta"}
             </button>
           </div>
         </section>

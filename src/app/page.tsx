@@ -3,6 +3,8 @@ import { MapPin } from "lucide-react";
 import { Cabecera } from "@/components/cabecera";
 import { ExploradorOfertas } from "@/components/explorador-ofertas";
 import { ofertasPublicas } from "@/lib/catalogo";
+import { direccionGuardada } from "@/lib/direccion";
+import { usuarioActual } from "@/lib/sesion";
 
 async function Catalogo() {
   const ofertas = await ofertasPublicas();
@@ -22,7 +24,9 @@ async function Catalogo() {
     );
   }
 
-  return <ExploradorOfertas ofertas={ofertas} />;
+  const usuario = await usuarioActual();
+  const direccion = usuario ? await direccionGuardada(usuario.id) : null;
+  return <ExploradorOfertas ofertas={ofertas} direccion={direccion} pedirDireccion={Boolean(usuario) && !direccion} />;
 }
 
 function CargandoCatalogo() {

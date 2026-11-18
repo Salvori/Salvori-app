@@ -15,6 +15,7 @@ Esquema en `supabase/migrations/`. La migración `comprador` (P2) agrega `mis_re
 | `negocios` | Perfil, ubicación, horario (`jsonb`), `es_prueba` | Admin |
 | `negocio_miembros` | Qué usuario opera qué negocio | Admin |
 | `ofertas` | Carril `comercial` o `lote`, contenido, foto, precios, cupos, ventana, estado | Miembros del negocio y admin; cupos solo por las funciones |
+| `direcciones_comprador` | Dirección, lat y lng del comprador (origen de las distancias). Solo la ve su dueño | El propio comprador (`/perfil`) |
 | `oferta_programacion` | Plantilla + días ISO (1 = lunes) + hora local; `ultima_publicacion` | Miembros del negocio y admin |
 | `reservas` | Precios copiados al reservar, código, estado, fechas de cada paso | **Solo** `solicitar_reserva` y `cambiar_estado_reserva` |
 | `calificaciones` | Calidad, aseo, atención (1–5), comentario ≤ 280 | Comprador con reserva entregada, una vez |
@@ -36,6 +37,7 @@ Los datos con `es_prueba = true` nunca salen en el catálogo público.
 | `registrar_vista(oferta_id, origen)` | Cualquiera | Evento `view_item` |
 | `has_role(uid, rol)`, `es_miembro_negocio(negocio)` | Políticas RLS | Verificación de rol y membresía (`security definer`) |
 | `puede_escribir_foto(nombre)` | Políticas de Storage | Ruta `<negocio_id>/<archivo>.(jpg\|jpeg\|png\|webp\|avif)` de un negocio propio |
+| `editar_oferta(p_oferta_id, …)` | Negocio, admin | Edita una oferta vigente con los permisos de quien llama (RLS y trigger). Bloquea la fila; los cupos no bajan de lo ya reservado (total − disponibles) y suben o bajan total y disponibles en la misma cantidad. Las reservas conservan su precio y su ventana |
 | `cerrar_vencidas()` | pg_cron | Ver abajo |
 | `publicar_programadas()` | pg_cron | Ver abajo |
 
@@ -85,7 +87,7 @@ on conflict do nothing;
 select u.email, r.role from public.user_roles r join auth.users u on u.id = r.user_id where r.role = 'admin';
 ```
 
-3. Para vincular a alguien como operador de un negocio:
+3. Para vincular a alguien como operador de un negocio, usa `/admin` → el negocio → **Usuarios del negocio** (P3). Si el correo aún no tiene cuenta, se crea y esa persona entra con el enlace mágico. La Server Action valida que quien llama sea admin y solo entonces usa la `service_role` (en el servidor) para escribir `user_roles`. Por SQL, en caso de emergencia:
 
 ```sql
 insert into public.user_roles (user_id, role)
@@ -97,6 +99,34 @@ select n.id, u.id from public.negocios n, auth.users u
 where n.slug = 'slug-del-negocio' and u.email = 'CORREO-DEL-NEGOCIO@dominio.com'
 on conflict do nothing;
 ```
+
+## Panel del negocio y admin (P3)
+
+- **Carril solo comercial** (14 nov): la interfaz crea todas las ofertas con `tipo = comercial`. El valor `lote` del enum y la columna `elaborado_en` siguen en la base de datos, sin uso.
+- **Programar** (`/negocio/ofertas` → Programar): guarda una fila en `oferta_programacion` con la oferta como plantilla. Una programación por oferta. Si la hora de hoy ya pasó al programar, se marca `ultima_publicacion = hoy` para no duplicar la oferta del día; la hora debe caer antes del fin de la ventana de recogida de la plantilla, o la tarea nunca publicaría.
+- **`/admin`** (rol admin, verificado en el layout, en cada página y en cada acción, además de RLS): negocios (crear, editar y usuarios), publicar a nombre de un negocio y reservas de todos los negocios con «Avisar por WhatsApp» (`wa.me`). No necesitó migración: usa las políticas de admin y `reservas_negocio` por negocio.
+
+## Demo del comprador (18 nov)
+
+Migración `20261118000000_demo_comprador`:
+- `ofertas.formato` (`combo` | `promocion`, por defecto `combo`): la etiqueta de la tarjeta. `publicar_programadas` la copia.
+- `proteger_inventario_oferta`: con reservas, los cupos cambian solo si total y disponibles se mueven en la misma cantidad (lo reservado no cambia).
+- `editar_oferta(...)`: ver Funciones.
+- `direcciones_comprador`: RLS `direccion_propia` (cada comprador la suya; sin política para negocio ni admin; anon sin permisos).
+
+Geocodificación: Nominatim de OpenStreetMap desde el servidor (`src/lib/geocodificar.ts`), acotada a Popayán, con User-Agent de la app, una petición por segundo por instancia y caché en memoria. Sin clave. `SALVORI_GEOCODIFICADOR=desactivado` la apaga (Playwright); el comprador siempre puede mover el pin a mano. La distancia es en línea recta (Haversine) con tiempo a pie a 4,5 km/h.
+
+## Correo al comprador (P3)
+
+Al **confirmar** o **rechazar** una reserva, la Server Action `gestionarReserva` envía un correo al comprador después de responder (`after`). El correo del comprador se lee con la `service_role` solo en el servidor; el negocio nunca lo ve.
+
+| Variable | Hoy (puente) | Después |
+|---|---|---|
+| `SMTP_HOST`, `SMTP_PORT` | `smtp.gmail.com`, `465` | Resend |
+| `SMTP_USER`, `SMTP_PASS` | Gmail de Salvori y su contraseña de aplicación | Resend |
+| `SMTP_FROM` | `Salvori <correo>` | Dirección del dominio `.co` |
+
+Van en Vercel (y en `.env.local` para probar), nunca en el repositorio. Si falta alguna, o falta `SUPABASE_SERVICE_ROLE_KEY`, el correo no sale, queda un aviso `[correo]` en el registro y la confirmación sigue su curso. Los destinatarios `*.test` (usuarios de prueba) se omiten.
 
 ## Pruebas
 

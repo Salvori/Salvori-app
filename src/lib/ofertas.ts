@@ -35,9 +35,24 @@ export function formatDistancia(km: number): string {
   return `${km.toFixed(1).replace(".", ",")} km`;
 }
 
+/** Caminando a unos 4,5 km/h, en línea recta (la ruta real suele ser algo más larga). */
+export function minutosAPie(km: number): number {
+  return Math.max(1, Math.round((km / 4.5) * 60));
+}
+
+/** «650 m · 9 min a pie». */
+export function textoDistancia(km: number): string {
+  return `${formatDistancia(km)} · ${minutosAPie(km)} min a pie`;
+}
+
 /** Porcentaje de descuento redondeado («-33%»). */
 export function descuento(final: number, habitual: number): number {
   return Math.round((1 - final / habitual) * 100);
+}
+
+/** Insignia de la tarjeta: «−33 %» (signo menos tipográfico y espacio duro antes de %). */
+export function textoDescuento(final: number, habitual: number): string {
+  return `−${descuento(final, habitual)} %`;
 }
 
 export function textoVentana(desde: string, hasta: string): string {

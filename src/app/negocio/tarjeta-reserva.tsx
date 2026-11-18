@@ -32,7 +32,19 @@ const ETIQUETA: Record<string, string> = {
 
 const btn = "rounded-full px-4 py-3 font-display font-bold disabled:opacity-50";
 
-export function TarjetaReserva({ r, ahora }: { r: ReservaBandeja; ahora: number }) {
+export function TarjetaReserva({
+  r,
+  ahora,
+  negocio,
+  children,
+}: {
+  r: ReservaBandeja;
+  ahora: number;
+  /** Nombre del negocio, cuando la bandeja mezcla varios (admin). */
+  negocio?: string;
+  /** Acciones extra al pie (admin: «Avisar por WhatsApp»). */
+  children?: React.ReactNode;
+}) {
   const [estado, accion, enviando] = useActionState<EstadoGestion, FormData>(gestionarReserva, null);
   const [modo, setModo] = useState<"nada" | "rechazar" | "entregar">("nada");
   const minutos = Math.floor((ahora - new Date(r.solicitada_en).getTime()) / 60000);
@@ -57,7 +69,8 @@ export function TarjetaReserva({ r, ahora }: { r: ReservaBandeja; ahora: number 
           {minutos < 1 ? "hace un momento" : `hace ${minutos} min`}
         </span>
       </div>
-      <p className="mt-3 font-display text-lg font-bold text-primary">
+      {negocio && <p className="mt-3 text-sm font-semibold text-muted-foreground">{negocio}</p>}
+      <p className={`${negocio ? "" : "mt-3 "}font-display text-lg font-bold text-primary`}>
         {r.cantidad} × {r.titulo}
       </p>
       <p className="text-sm">
@@ -167,6 +180,7 @@ export function TarjetaReserva({ r, ahora }: { r: ReservaBandeja; ahora: number 
           {estado.ok}
         </p>
       )}
+      {children}
     </li>
   );
 }

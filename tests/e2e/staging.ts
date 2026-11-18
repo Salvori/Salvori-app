@@ -1,5 +1,6 @@
 // Ayudas de Playwright contra salvori-staging (usuarios de prueba y datos temporales).
 import { randomUUID } from "node:crypto";
+import { expect, type Page } from "@playwright/test";
 import { createServerClient } from "@supabase/ssr";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
@@ -10,11 +11,14 @@ const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
 export const USUARIOS = {
   comprador: { email: "comprador.prueba@salvori.test", password: process.env.PRUEBA_PASSWORD_COMPRADOR ?? "" },
   negocio: { email: "negocio.prueba@salvori.test", password: process.env.PRUEBA_PASSWORD_NEGOCIO ?? "" },
+  admin: { email: "admin.prueba@salvori.test", password: process.env.PRUEBA_PASSWORD_ADMIN ?? "" },
 };
 
 export const hayStaging = Boolean(
   url.includes("ekdpnsrigbpdnbwioozv") && anonKey && serviceKey && USUARIOS.comprador.password && USUARIOS.negocio.password,
 );
+
+export const hayAdmin = hayStaging && Boolean(USUARIOS.admin.password);
 
 const sinSesion = { auth: { persistSession: false, autoRefreshToken: false } };
 export const admin = (): SupabaseClient => createClient(url, serviceKey, sinSesion);
@@ -92,14 +96,53 @@ export async function crearOfertaTemporal() {
     negocioId: neg.id as string,
     ofertaId: oferta.id as string,
     titulo: oferta.titulo as string,
-    async borrar() {
-      await db.from("eventos").delete().eq("negocio_id", neg.id);
-      await db.from("calificaciones").delete().eq("negocio_id", neg.id);
-      await db.from("reservas").delete().eq("oferta_id", oferta.id);
-      await db.from("ofertas").delete().eq("negocio_id", neg.id);
-      await db.from("negocio_miembros").delete().eq("negocio_id", neg.id);
-      await db.from("negocios").delete().eq("id", neg.id);
-      await db.storage.from("ofertas").remove([ruta]);
-    },
+    borrar: () => borrarNegocio(neg.id),
   };
+}
+
+/** Borra un negocio temporal con todo lo que cuelga de él (también las fotos subidas). */
+export async function borrarNegocio(negocioId: string) {
+  const db = admin();
+  const { data: ofertas } = await db.from("ofertas").select("id").eq("negocio_id", negocioId);
+  const ids = (ofertas ?? []).map((o) => o.id as string);
+  await db.from("eventos").delete().eq("negocio_id", negocioId);
+  await db.from("calificaciones").delete().eq("negocio_id", negocioId);
+  await db.from("oferta_programacion").delete().eq("negocio_id", negocioId);
+  if (ids.length) await db.from("reservas").delete().in("oferta_id", ids);
+  await db.from("ofertas").delete().eq("negocio_id", negocioId);
+  await db.from("negocio_miembros").delete().eq("negocio_id", negocioId);
+  await db.from("negocios").delete().eq("id", negocioId);
+  const { data: fotos } = await db.storage.from("ofertas").list(negocioId);
+  if (fotos?.length) await db.storage.from("ofertas").remove(fotos.map((f) => `${negocioId}/${f.name}`));
+}
+
+/** Los 3 pasos de publicar (foto → promoción y precio → horario). Sirve en /negocio/publicar y /admin/publicar. */
+export async function publicarEnTresPasos(pagina: Page, titulo: string) {
+  // Foto: una imagen generada con el propio navegador.
+  const lienzo = await pagina.context().newPage();
+  await lienzo.setContent('<div style="width:600px;height:450px;background:linear-gradient(135deg,#F57A35,#F8F5EA)"></div>');
+  const foto = await lienzo.screenshot({ type: "png" });
+  await lienzo.close();
+
+  // Si el archivo llega antes de que la página se hidrate, nadie escucha el cambio: se reintenta.
+  await expect(async () => {
+    await pagina.getByTestId("foto").setInputFiles({ name: "combo.png", mimeType: "image/png", buffer: foto });
+    await expect(pagina.getByAltText("Foto de la oferta")).toBeVisible({ timeout: 10_000 });
+  }).toPass({ timeout: 45_000 });
+  await pagina.getByRole("button", { name: "Siguiente" }).click();
+
+  // Carril solo comercial: no hay selector de tipo ni «producto del día».
+  await expect(pagina.getByRole("radiogroup", { name: "Tipo de oferta" })).toHaveCount(0);
+  await expect(pagina.getByText(/producto del día/i)).toHaveCount(0);
+  await pagina.getByLabel("Título").fill(titulo);
+  await pagina.getByLabel("Qué recibe exactamente").fill("2 empanadas de pipián y una gaseosa personal");
+  await pagina.getByLabel("Precio habitual").fill("12000");
+  await pagina.getByLabel("Precio Salvori").fill("8000");
+  await expect(pagina.getByText("Descuento: 33%")).toBeVisible();
+  await pagina.getByLabel("Cupos disponibles").fill("4");
+  await pagina.getByRole("button", { name: "Siguiente" }).click();
+
+  await expect(pagina.getByText(/elaborado/i)).toHaveCount(0);
+  await expect(pagina.getByLabel("Vista previa")).toContainText(titulo);
+  await pagina.getByRole("button", { name: "Publicar oferta" }).click();
 }

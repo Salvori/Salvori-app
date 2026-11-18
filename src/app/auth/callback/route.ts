@@ -36,5 +36,17 @@ export async function GET(request: NextRequest) {
   }
   almacen.delete("salvori_autorizacion");
 
+  // Primera vez de un comprador: pedir la dirección (puede omitirla y seguir a donde iba).
+  if (data.user) {
+    const [{ data: roles }, { data: direccion, error }] = await Promise.all([
+      supabase.from("user_roles").select("role").eq("user_id", data.user.id),
+      supabase.from("direcciones_comprador").select("user_id").eq("user_id", data.user.id).maybeSingle(),
+    ]);
+    const soloComprador = (roles ?? []).every((r) => r.role === "comprador");
+    if (soloComprador && !error && !direccion && !siguiente.startsWith("/perfil")) {
+      return NextResponse.redirect(new URL(`/perfil?primera=1&next=${encodeURIComponent(siguiente)}`, url.origin));
+    }
+  }
+
   return NextResponse.redirect(new URL(siguiente, url.origin));
 }
