@@ -2,7 +2,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { Clock, MapPin, Star } from "lucide-react";
 import { formatCOP } from "@/lib/formato";
-import { CATEGORIA_LABEL, descuento, formatDistancia, textoVentana, urlFoto } from "@/lib/ofertas";
+import { etiquetaFormato } from "@/lib/esquema-oferta";
+import { CATEGORIA_LABEL, textoDescuento, textoDistancia, textoVentana, urlFoto } from "@/lib/ofertas";
 import type { OfertaTarjeta } from "@/lib/catalogo";
 
 export function TarjetaOferta({ oferta, km, prioridad = false }: { oferta: OfertaTarjeta; km: number; prioridad?: boolean }) {
@@ -22,8 +23,14 @@ export function TarjetaOferta({ oferta, km, prioridad = false }: { oferta: Ofert
             priority={prioridad}
           />
         )}
-        <span className="absolute right-3 top-3 rounded-full bg-accent px-2.5 py-0.5 font-display text-sm font-extrabold text-accent-foreground">
-          -{descuento(oferta.precio_final, oferta.precio_habitual)}%
+        <span className="absolute left-3 top-3 rounded-full bg-primary px-2.5 py-1 text-xs font-bold uppercase tracking-wide text-primary-foreground shadow-card">
+          {etiquetaFormato(oferta.formato)}
+        </span>
+        <span
+          className="absolute right-3 top-3 rounded-full bg-accent px-3 py-1 font-display text-base font-extrabold text-accent-foreground shadow-card"
+          aria-label={`Descuento de ${textoDescuento(oferta.precio_final, oferta.precio_habitual).slice(1)}`}
+        >
+          {textoDescuento(oferta.precio_final, oferta.precio_habitual)}
         </span>
       </div>
       <div className="flex flex-1 flex-col p-5">
@@ -48,12 +55,12 @@ export function TarjetaOferta({ oferta, km, prioridad = false }: { oferta: Ofert
           <span className="text-sm text-muted-foreground line-through">{formatCOP(oferta.precio_habitual)}</span>
         </div>
         <p className="mt-1 text-sm font-semibold text-mandarina-texto">
-          {agotada ? "Agotada" : `Quedan ${oferta.cupos_disponibles}`}
+          {agotada ? "Agotada" : oferta.cupos_disponibles === 1 ? "Queda 1" : `Quedan ${oferta.cupos_disponibles}`}
         </p>
         <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
           <span className="flex items-center gap-1">
             <MapPin className="size-4" aria-hidden />
-            {formatDistancia(km)}
+            {textoDistancia(km)}
           </span>
           <span className="flex items-center gap-1">
             <Clock className="size-4" aria-hidden />

@@ -11,6 +11,7 @@ import { usuarioActual } from "@/lib/sesion";
 import { createClient } from "@/lib/supabase/server";
 import { salir } from "./acciones";
 import { BotonCancelar } from "./boton-cancelar";
+import { TicketReserva } from "./ticket-reserva";
 import { TiempoReal } from "./tiempo-real";
 
 export const metadata: Metadata = { title: "Mis reservas" };
@@ -29,9 +30,10 @@ async function Lista({ searchParams }: { searchParams: Promise<{ nueva?: string 
   const { nueva } = await searchParams;
 
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("mis_reservas");
+  const [{ data, error }, { data: cuenta }] = await Promise.all([supabase.rpc("mis_reservas"), supabase.auth.getUser()]);
   if (error) throw new Error("No pudimos cargar tus reservas.");
   const reservas = data ?? [];
+  const comprador = (cuenta.user?.user_metadata?.nombre as string | undefined)?.trim() || (usuario.email ?? "").split("@")[0] || "Comprador";
 
   return (
     <>
@@ -66,12 +68,21 @@ async function Lista({ searchParams }: { searchParams: Promise<{ nueva?: string 
                   {r.negocio_nombre} · {r.cantidad} × {formatCOP(r.precio_unitario)}
                 </p>
                 {muestraCodigo(estado) && r.codigo && (
-                  <div className="mt-4 rounded-2xl bg-primary px-4 py-5 text-center text-primary-foreground">
-                    <p className="text-sm">Muestra este código en el local</p>
-                    <p className="mt-1 font-mono text-4xl font-extrabold tracking-[0.3em]" data-testid="codigo">
-                      {r.codigo}
-                    </p>
-                  </div>
+                  <>
+                    <p className="mt-3 text-sm font-semibold text-primary">Muestra este código en el local, o descarga el ticket.</p>
+                    <TicketReserva
+                      d={{
+                        codigo: r.codigo,
+                        titulo: r.titulo,
+                        cantidad: r.cantidad,
+                        total: formatCOP(r.precio_unitario * r.cantidad),
+                        comprador,
+                        negocio: r.negocio_nombre,
+                        direccion: r.negocio_direccion,
+                        ventana: textoVentana(r.recogida_desde, r.recogida_hasta),
+                      }}
+                    />
+                  </>
                 )}
                 <ul className="mt-3 space-y-1 text-sm text-muted-foreground">
                   <li className="flex items-center gap-2">

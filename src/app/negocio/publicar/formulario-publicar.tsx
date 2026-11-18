@@ -5,8 +5,9 @@ import { useActionState, useMemo, useState } from "react";
 import { Camera, ChevronLeft, Clock, ImagePlus } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { formatCOP } from "@/lib/formato";
-import { CATEGORIA_LABEL, descuento } from "@/lib/ofertas";
-import { publicarOferta, type EstadoPublicar } from "./acciones";
+import { FORMATO_LABEL, FORMATOS, type Formato } from "@/lib/esquema-oferta";
+import { CATEGORIA_LABEL, descuento, textoDescuento } from "@/lib/ofertas";
+import { editarOferta, publicarOferta, type EstadoPublicar } from "./acciones";
 
 const campo = "rounded-xl border bg-background px-4 py-3 text-base outline-none focus-visible:ring-2 focus-visible:ring-ring";
 const etiqueta = "flex flex-col gap-1.5 font-semibold";
@@ -19,6 +20,7 @@ function horaBogota(offsetMin = 0): string {
 /** Datos de una oferta anterior para publicarla de nuevo («Duplicar»). */
 export type OfertaInicial = {
   foto: { ruta: string; vista: string };
+  formato?: Formato;
   titulo: string;
   contenido: string;
   categoria: string;
@@ -36,19 +38,24 @@ export function FormularioPublicar({
   negocioNombre,
   destino = "negocio",
   inicial,
+  edicion,
 }: {
   negocioId: string;
   slug: string;
   negocioNombre: string;
   destino?: "negocio" | "admin";
   inicial?: OfertaInicial;
+  /** Editar una oferta vigente en vez de publicar una nueva. */
+  edicion?: { ofertaId: string; reservados: number };
 }) {
-  const [estado, accion, enviando] = useActionState<EstadoPublicar, FormData>(publicarOferta, null);
+  const [estado, accion, enviando] = useActionState<EstadoPublicar, FormData>(edicion ? editarOferta : publicarOferta, null);
+  const minimoCupos = Math.max(1, edicion?.reservados ?? 0);
   const [paso, setPaso] = useState(1);
   const [foto, setFoto] = useState<{ ruta: string; vista: string } | null>(inicial?.foto ?? null);
   const [subiendo, setSubiendo] = useState(false);
   const [errorFoto, setErrorFoto] = useState<string | null>(null);
   const [f, setF] = useState({
+    formato: (inicial?.formato ?? "combo") as Formato,
     titulo: inicial?.titulo ?? "",
     contenido: inicial?.contenido ?? "",
     categoria: inicial?.categoria ?? "panaderia_pasteleria",
@@ -66,7 +73,7 @@ export function FormularioPublicar({
   const final = Number(f.precioFinal) || 0;
   const pct = habitual > 0 && final > 0 && final < habitual ? descuento(final, habitual) : null;
 
-  const paso2Listo = f.titulo.trim().length >= 3 && f.contenido.trim().length >= 5 && pct !== null && Number(f.cupos) >= 1;
+  const paso2Listo = f.titulo.trim().length >= 3 && f.contenido.trim().length >= 5 && pct !== null && Number(f.cupos) >= minimoCupos;
 
   async function elegirFoto(e: React.ChangeEvent<HTMLInputElement>) {
     const archivo = e.target.files?.[0];
@@ -101,6 +108,7 @@ export function FormularioPublicar({
       <input type="hidden" name="negocioId" value={negocioId} />
       <input type="hidden" name="slug" value={slug} />
       <input type="hidden" name="destino" value={destino} />
+      {edicion && <input type="hidden" name="ofertaId" value={edicion.ofertaId} />}
       <input type="hidden" name="foto" value={foto?.ruta ?? ""} />
       {Object.entries(f).map(([k, v]) => (
         <input key={k} type="hidden" name={k} value={v} />
@@ -160,6 +168,20 @@ export function FormularioPublicar({
       {paso === 2 && (
         <section className="flex flex-col gap-4">
           <h2 className="font-display text-xl font-extrabold text-primary">Tu promoción o combo</h2>
+          <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Etiqueta de la oferta">
+            {FORMATOS.map((v) => (
+              <button
+                key={v}
+                type="button"
+                role="radio"
+                aria-checked={f.formato === v}
+                onClick={() => setF((x) => ({ ...x, formato: v }))}
+                className={`rounded-2xl border-2 px-3 py-3 text-sm font-bold ${f.formato === v ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card"}`}
+              >
+                {FORMATO_LABEL[v]}
+              </button>
+            ))}
+          </div>
           <label className={etiqueta}>
             Título
             <input value={f.titulo} onChange={set("titulo")} maxLength={80} placeholder="Ej.: Combo 6 panes de bono" className={campo} />
@@ -193,8 +215,14 @@ export function FormularioPublicar({
           </p>
           <label className={etiqueta}>
             Cupos disponibles
-            <input value={f.cupos} onChange={set("cupos")} inputMode="numeric" type="number" min={1} max={200} className={campo} />
+            <input value={f.cupos} onChange={set("cupos")} inputMode="numeric" type="number" min={minimoCupos} max={200} className={campo} />
           </label>
+          {edicion && edicion.reservados > 0 && (
+            <p className="-mt-2 text-sm text-muted-foreground">
+              Ya hay {edicion.reservados} {edicion.reservados === 1 ? "cupo reservado" : "cupos reservados"}: no puedes dejar menos. Las reservas hechas
+              conservan su precio.
+            </p>
+          )}
           <div className="flex gap-3">
             <button type="button" onClick={() => setPaso(1)} className="flex items-center gap-1 rounded-full border px-4 py-3 font-bold">
               <ChevronLeft className="size-4" aria-hidden /> Atrás
@@ -236,9 +264,12 @@ export function FormularioPublicar({
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={foto.vista} alt="" className="size-full object-cover" />
               )}
+              <span className="absolute left-3 top-3 rounded-full bg-primary px-2.5 py-0.5 text-xs font-bold uppercase tracking-wide text-primary-foreground">
+                {FORMATO_LABEL[f.formato]}
+              </span>
               {pct !== null && (
                 <span className="absolute right-3 top-3 rounded-full bg-accent px-2.5 py-0.5 font-display text-sm font-extrabold text-accent-foreground">
-                  -{pct}%
+                  {textoDescuento(final, habitual)}
                 </span>
               )}
             </div>
@@ -250,7 +281,7 @@ export function FormularioPublicar({
                 <span className="text-sm text-muted-foreground line-through">{formatCOP(habitual)}</span>
               </p>
               <p className="mt-1 flex items-center gap-1 text-sm text-muted-foreground">
-                <Clock className="size-4" aria-hidden /> Recoge de {f.desde} a {f.hasta} · Quedan {f.cupos}
+                <Clock className="size-4" aria-hidden /> Recoge de {f.desde} a {f.hasta} · Quedan {Math.max(0, Number(f.cupos) - (edicion?.reservados ?? 0))}
               </p>
             </div>
           </div>
@@ -269,7 +300,7 @@ export function FormularioPublicar({
               disabled={enviando}
               className="flex-1 rounded-full bg-accent py-3 font-display text-lg font-extrabold text-accent-foreground disabled:opacity-50"
             >
-              {enviando ? "Publicando…" : "Publicar oferta"}
+              {edicion ? (enviando ? "Guardando…" : "Guardar cambios") : enviando ? "Publicando…" : "Publicar oferta"}
             </button>
           </div>
         </section>

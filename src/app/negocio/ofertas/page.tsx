@@ -11,15 +11,14 @@ import { horaCorta, textoDias } from "@/lib/programacion";
 import { cambiarProgramacion, cerrarOferta } from "../acciones";
 import { contextoNegocio } from "../contexto";
 import { NavegacionNegocio } from "../navegacion";
-import { EditarCupos } from "./editar-cupos";
 import { ProgramarOferta } from "./programar";
 
 export const metadata: Metadata = { title: "Mis ofertas" };
 
 const ESTADO: Record<string, string> = { activa: "Activa", agotada: "Agotada", cerrada: "Cerrada", borrador: "Borrador" };
 
-async function Lista({ searchParams }: { searchParams: Promise<{ n?: string; publicada?: string }> }) {
-  const { n, publicada } = await searchParams;
+async function Lista({ searchParams }: { searchParams: Promise<{ n?: string; publicada?: string; editada?: string }> }) {
+  const { n, publicada, editada } = await searchParams;
   const { negocio, negocios } = await contextoNegocio(n);
   const supabase = await createClient();
   const { data } = await supabase
@@ -35,14 +34,10 @@ async function Lista({ searchParams }: { searchParams: Promise<{ n?: string; pub
     .order("creado_en", { ascending: false });
   const porOferta = new Map((programadas ?? []).map((p) => [p.plantilla_oferta_id, p]));
   const ahora = instanteActual();
-  const ofertas = await Promise.all(
-    (data ?? []).map(async (o) => {
-      const vigente = ["activa", "agotada"].includes(o.estado) && new Date(o.recogida_hasta).getTime() > ahora;
-      // El negocio no lee la tabla reservas: pregunta por la función (solo las vigentes).
-      const sinReservas = vigente && o.estado === "activa" ? (await supabase.rpc("oferta_tiene_reservas", { oferta: o.id })).data === false : false;
-      return { ...o, vigente, sinReservas };
-    }),
-  );
+  const ofertas = (data ?? []).map((o) => ({
+    ...o,
+    vigente: ["activa", "agotada"].includes(o.estado) && new Date(o.recogida_hasta).getTime() > ahora,
+  }));
 
   return (
     <>
@@ -78,6 +73,11 @@ async function Lista({ searchParams }: { searchParams: Promise<{ n?: string; pub
           </ul>
         </section>
       )}
+      {editada && (
+        <p className="mb-4 rounded-2xl bg-secondary px-4 py-3 font-semibold text-secondary-foreground" role="status">
+          Cambios guardados. Los compradores ya ven la oferta actualizada.
+        </p>
+      )}
       {ofertas.length === 0 ? (
         <div className="rounded-2xl bg-card p-6 text-center shadow-card">
           <p className="text-muted-foreground">Todavía no has publicado ofertas.</p>
@@ -103,6 +103,11 @@ async function Lista({ searchParams }: { searchParams: Promise<{ n?: string; pub
                     {o.vigente ? ESTADO[o.estado] : "Cerrada"} · {o.cupos_disponibles}/{o.cupos_total} cupos · {textoVentana(o.recogida_desde, o.recogida_hasta)}
                   </p>
                   <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1">
+                    {o.vigente && (
+                      <Link href={`/negocio/ofertas/${o.id}/editar?n=${negocio.slug}`} className="text-xs font-semibold text-primary underline underline-offset-4">
+                        Editar
+                      </Link>
+                    )}
                     <Link href={`/negocio/publicar?n=${negocio.slug}&desde=${o.id}`} className="text-xs font-semibold text-primary underline underline-offset-4">
                       Duplicar
                     </Link>
@@ -113,7 +118,6 @@ async function Lista({ searchParams }: { searchParams: Promise<{ n?: string; pub
                       </form>
                     )}
                   </div>
-                  {o.sinReservas && <EditarCupos ofertaId={o.id} cupos={o.cupos_total} />}
                   <ProgramarOferta
                     ofertaId={o.id}
                     horaInicial={porOferta.has(o.id) ? horaCorta(porOferta.get(o.id)!.hora_publicacion) : formatHora(o.recogida_desde)}
@@ -135,7 +139,7 @@ export default function MisOfertas(props: PageProps<"/negocio/ofertas">) {
       <Cabecera />
       <main className="mx-auto w-full max-w-xl flex-1 px-5 pb-16">
         <Suspense fallback={<div className="h-64 animate-pulse rounded-2xl bg-muted" />}>
-          <Lista searchParams={props.searchParams as Promise<{ n?: string; publicada?: string }>} />
+          <Lista searchParams={props.searchParams as Promise<{ n?: string; publicada?: string; editada?: string }>} />
         </Suspense>
       </main>
     </div>

@@ -29,5 +29,7 @@ export default defineConfig({
         url: `http://localhost:${PORT}`,
         reuseExistingServer: !process.env.CI,
         timeout: 120_000,
+        // Sin llamadas reales a Nominatim desde las pruebas: el pin se mueve a mano.
+        env: { SALVORI_GEOCODIFICADOR: "desactivado" },
       },
 });

@@ -6,6 +6,7 @@ export type OfertaTarjeta = {
   id: string;
   titulo: string;
   categoria: string;
+  formato: string;
   foto_url: string;
   precio_habitual: number;
   precio_final: number;
@@ -26,7 +27,7 @@ export async function ofertasPublicas(): Promise<OfertaTarjeta[] | null> {
   const { data, error } = await db
     .from("ofertas")
     .select(
-      "id, titulo, categoria, foto_url, precio_habitual, precio_final, cupos_disponibles, recogida_desde, recogida_hasta, estado, negocio:negocios(id, nombre, slug, lat, lng)",
+      "id, titulo, categoria, formato, foto_url, precio_habitual, precio_final, cupos_disponibles, recogida_desde, recogida_hasta, estado, negocio:negocios(id, nombre, slug, lat, lng)",
     )
     .in("estado", ["activa", "agotada"])
     .gte("recogida_hasta", new Date().toISOString())

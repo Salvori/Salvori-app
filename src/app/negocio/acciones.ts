@@ -73,31 +73,6 @@ export async function gestionarReserva(_p: EstadoGestion, form: FormData): Promi
   return { ok: OK[d.data.estado] };
 }
 
-const esquemaCupos = z.object({ ofertaId: z.uuid(), cupos: z.coerce.number().int().min(1, "Al menos un cupo.").max(200, "Máximo 200 cupos.") });
-
-/** Cambia los cupos de una oferta que todavía no tiene reservas (el trigger de la base también lo exige). */
-export async function editarCupos(_p: EstadoGestion, form: FormData): Promise<EstadoGestion> {
-  const d = esquemaCupos.safeParse({ ofertaId: form.get("ofertaId"), cupos: form.get("cupos") });
-  if (!d.success) return { error: d.error.issues[0]?.message ?? "Revisa los cupos." };
-
-  const supabase = await createClient();
-  const { data: oferta } = await supabase.from("ofertas").select("estado, recogida_hasta").eq("id", d.data.ofertaId).maybeSingle();
-  if (!oferta) return { error: "No tienes acceso a esta oferta." };
-  if (oferta.estado !== "activa" || new Date(oferta.recogida_hasta).getTime() <= Date.now()) {
-    return { error: "Solo se cambian los cupos de una oferta activa." };
-  }
-  const { error } = await supabase
-    .from("ofertas")
-    .update({ cupos_total: d.data.cupos, cupos_disponibles: d.data.cupos })
-    .eq("id", d.data.ofertaId);
-  if (error) {
-    if (/con reservas/i.test(error.message)) return { error: "Ya tiene reservas: sus cupos no se pueden cambiar." };
-    return { error: mensajeAmigable(error) };
-  }
-  revalidatePath("/negocio/ofertas");
-  return { ok: `Ahora tiene ${d.data.cupos} cupos.` };
-}
-
 export async function cerrarOferta(form: FormData) {
   const id = z.uuid().safeParse(form.get("ofertaId"));
   if (!id.success) return;

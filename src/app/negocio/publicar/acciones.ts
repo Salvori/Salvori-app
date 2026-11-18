@@ -1,68 +1,28 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { esquemaOferta, ventanaDeHoy } from "@/lib/esquema-oferta";
+import { mensajeAmigable } from "@/lib/errores";
 import { createClient } from "@/lib/supabase/server";
 import { usuarioActual } from "@/lib/sesion";
 
 export type EstadoPublicar = { error: string } | null;
 
-const CATEGORIAS = [
-  "desayuno",
-  "almuerzo",
-  "panaderia_pasteleria",
-  "cafe",
-  "comida_rapida",
-  "saludable",
-  "postres",
-  "bebidas",
-  "otro",
-] as const;
-
-const HORA = /^([01]\d|2[0-3]):[0-5]\d$/;
-
-const esquema = z
-  .object({
-    negocioId: z.uuid(),
-    slug: z.string(),
-    foto: z.string().min(1, "Agrega una foto real del producto."),
-    titulo: z.string().trim().min(3, "Escribe un título.").max(80),
-    contenido: z.string().trim().min(5, "Describe exactamente qué recibe el comprador.").max(500),
-    categoria: z.enum(CATEGORIAS),
-    precioHabitual: z.coerce.number().int().min(500, "Revisa el precio habitual."),
-    precioFinal: z.coerce.number().int().min(100, "Revisa el precio final."),
-    cupos: z.coerce.number().int().min(1, "Al menos un cupo.").max(200),
-    desde: z.string().regex(HORA, "Hora de inicio no válida."),
-    hasta: z.string().regex(HORA, "Hora de fin no válida."),
-    preparacion: z.coerce.number().int().min(0).max(240).optional(),
-    // «admin» cuando el equipo publica a nombre del negocio desde /admin/publicar.
-    destino: z.enum(["negocio", "admin"]).default("negocio"),
-  })
-  .refine((d) => d.precioFinal < d.precioHabitual, { message: "El precio final debe ser menor que el habitual.", path: ["precioFinal"] });
-
-/** Fecha de hoy en Bogotá + hora local → ISO con zona -05:00. */
-function hoyALas(hora: string, diasExtra = 0): string {
-  const hoy = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Bogota" }).format(new Date());
-  const base = new Date(`${hoy}T${hora}:00-05:00`);
-  base.setUTCDate(base.getUTCDate() + diasExtra);
-  return base.toISOString();
-}
-
 export async function publicarOferta(_p: EstadoPublicar, form: FormData): Promise<EstadoPublicar> {
   const usuario = await usuarioActual();
   if (!usuario) redirect("/entrar?next=/negocio/publicar");
 
-  const datos = esquema.safeParse(Object.fromEntries(form));
+  const datos = esquemaOferta.safeParse(Object.fromEntries(form));
   if (!datos.success) return { error: datos.error.issues[0]?.message ?? "Revisa los datos." };
   const d = datos.data;
 
   // La foto debe estar en la carpeta del negocio (la política de Storage ya lo exige al subirla).
   if (!d.foto.startsWith(`${d.negocioId}/`)) return { error: "La foto no corresponde a este negocio." };
 
-  const desde = hoyALas(d.desde);
-  let hasta = hoyALas(d.hasta);
-  if (new Date(hasta) <= new Date(desde)) hasta = hoyALas(d.hasta, 1); // cruza la medianoche
-  if (new Date(hasta) <= new Date()) return { error: "La hora de fin ya pasó. Elige una ventana de recogida futura." };
+  const ventana = ventanaDeHoy(d.desde, d.hasta);
+  if ("error" in ventana) return ventana;
 
   const supabase = await createClient();
   const { data: negocio } = await supabase.from("negocios").select("es_prueba").eq("id", d.negocioId).maybeSingle();
@@ -71,6 +31,7 @@ export async function publicarOferta(_p: EstadoPublicar, form: FormData): Promis
   const { error } = await supabase.from("ofertas").insert({
     negocio_id: d.negocioId,
     tipo: "comercial", // carril solo comercial (decisión del 14 nov)
+    formato: d.formato,
     titulo: d.titulo,
     contenido: d.contenido,
     categoria: d.categoria,
@@ -79,8 +40,8 @@ export async function publicarOferta(_p: EstadoPublicar, form: FormData): Promis
     precio_final: d.precioFinal,
     cupos_total: d.cupos,
     cupos_disponibles: d.cupos,
-    recogida_desde: desde,
-    recogida_hasta: hasta,
+    recogida_desde: ventana.desde,
+    recogida_hasta: ventana.hasta,
     tiempo_preparacion_min: d.preparacion ?? null,
     estado: "activa",
     publicada_por: usuario.id,
@@ -90,4 +51,51 @@ export async function publicarOferta(_p: EstadoPublicar, form: FormData): Promis
 
   const base = d.destino === "admin" ? "/admin/publicar" : "/negocio/ofertas";
   redirect(`${base}?n=${encodeURIComponent(d.slug)}&publicada=1`);
+}
+
+/**
+ * Edita una oferta vigente con la función editar_oferta (permisos de quien llama, RLS
+ * y trigger de inventario). Con reservas: los cupos no bajan de lo reservado y las
+ * reservas hechas conservan su precio y su ventana (están copiados en cada reserva).
+ */
+export async function editarOferta(_p: EstadoPublicar, form: FormData): Promise<EstadoPublicar> {
+  const usuario = await usuarioActual();
+  if (!usuario) redirect("/entrar?next=/negocio/ofertas");
+
+  const ofertaId = z.uuid().safeParse(form.get("ofertaId"));
+  if (!ofertaId.success) return { error: "Oferta no válida." };
+  const datos = esquemaOferta.safeParse(Object.fromEntries(form));
+  if (!datos.success) return { error: datos.error.issues[0]?.message ?? "Revisa los datos." };
+  const d = datos.data;
+  if (!d.foto.startsWith(`${d.negocioId}/`)) return { error: "La foto no corresponde a este negocio." };
+
+  const ventana = ventanaDeHoy(d.desde, d.hasta);
+  if ("error" in ventana) return ventana;
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("editar_oferta", {
+    p_oferta_id: ofertaId.data,
+    p_titulo: d.titulo,
+    p_contenido: d.contenido,
+    p_categoria: d.categoria,
+    p_formato: d.formato,
+    p_foto_url: d.foto,
+    p_precio_habitual: d.precioHabitual,
+    p_precio_final: d.precioFinal,
+    p_cupos_total: d.cupos,
+    p_recogida_desde: ventana.desde,
+    p_recogida_hasta: ventana.hasta,
+    p_tiempo_preparacion_min: d.preparacion ?? null,
+  });
+  if (error) {
+    const reservados = /Ya hay (\d+) cupos reservados/.exec(error.message);
+    if (reservados) return { error: `Ya hay ${reservados[1]} cupos reservados: la oferta no puede quedar con menos.` };
+    if (/solo se editan ofertas vigentes/i.test(error.message)) return { error: "Esta oferta ya cerró: duplícala para publicarla de nuevo." };
+    if (/hora de fin ya pasó/i.test(error.message)) return { error: "La hora de fin ya pasó. Elige una ventana de recogida futura." };
+    return { error: mensajeAmigable(error) };
+  }
+
+  revalidatePath("/negocio/ofertas");
+  revalidatePath("/");
+  redirect(`/negocio/ofertas?n=${encodeURIComponent(d.slug)}&editada=1`);
 }

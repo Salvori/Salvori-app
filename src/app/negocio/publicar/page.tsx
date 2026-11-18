@@ -1,49 +1,17 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { Cabecera } from "@/components/cabecera";
-import { formatHora } from "@/lib/formato";
-import { urlFoto } from "@/lib/ofertas";
-import { createClient } from "@/lib/supabase/server";
-import { instanteActual } from "@/lib/tiempo";
 import { contextoNegocio } from "../contexto";
 import { NavegacionNegocio } from "../navegacion";
-import { FormularioPublicar, type OfertaInicial } from "./formulario-publicar";
-
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-/** «Duplicar»: la oferta anterior del mismo negocio como punto de partida (RLS: solo las propias). */
-async function ofertaInicial(id: string | undefined, negocioId: string): Promise<OfertaInicial | undefined> {
-  if (!id || !UUID.test(id)) return undefined;
-  const supabase = await createClient();
-  const { data: o } = await supabase
-    .from("ofertas")
-    .select("titulo, contenido, categoria, foto_url, precio_habitual, precio_final, cupos_total, recogida_desde, recogida_hasta, tiempo_preparacion_min")
-    .eq("id", id)
-    .eq("negocio_id", negocioId)
-    .maybeSingle();
-  const vista = urlFoto(o?.foto_url);
-  if (!o || !vista) return undefined;
-  // Misma franja horaria si todavía no terminó hoy; si no, la de siempre (ahora a 2 horas).
-  const finHoy = new Date(o.recogida_hasta).getTime() > instanteActual();
-  return {
-    foto: { ruta: o.foto_url, vista },
-    titulo: o.titulo,
-    contenido: o.contenido,
-    categoria: o.categoria,
-    precioHabitual: String(o.precio_habitual),
-    precioFinal: String(o.precio_final),
-    cupos: String(o.cupos_total),
-    ...(finHoy ? { desde: formatHora(o.recogida_desde), hasta: formatHora(o.recogida_hasta) } : {}),
-    preparacion: String(o.tiempo_preparacion_min ?? 10),
-  };
-}
+import { ofertaGuardada } from "../oferta-guardada";
+import { FormularioPublicar } from "./formulario-publicar";
 
 export const metadata: Metadata = { title: "Publicar oferta" };
 
 async function Contenido({ searchParams }: { searchParams: Promise<{ n?: string; desde?: string }> }) {
   const { n, desde } = await searchParams;
   const { negocio, negocios } = await contextoNegocio(n);
-  const inicial = await ofertaInicial(desde, negocio.id);
+  const inicial = (await ofertaGuardada(desde, negocio.id))?.inicial;
   return (
     <>
       <NavegacionNegocio actual="/negocio/publicar" negocio={negocio} negocios={negocios} />

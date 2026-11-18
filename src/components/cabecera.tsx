@@ -39,6 +39,9 @@ async function Acceso() {
       <Link href="/mis-reservas" className={pildora}>
         Mis reservas
       </Link>
+      <Link href="/perfil" className={pildora} aria-label="Mi perfil">
+        Perfil
+      </Link>
     </nav>
   );
 }
