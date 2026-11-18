@@ -43,7 +43,9 @@ test.describe("admin: crea un negocio, vincula su usuario, publica por él y ges
     await page.getByLabel("Dirección").fill("Calle E2E # 1-23");
     await page.getByLabel("Horario de atención").fill("lun-sab: 07:00-19:00");
     await page.getByLabel("WhatsApp del negocio").fill("300 123 4567");
-    await page.getByLabel(/Negocio de prueba/).check();
+    // En dev, la insignia de Next puede tapar el checkbox en el móvil: el clic va directo al elemento.
+    await page.getByLabel(/Negocio de prueba/).dispatchEvent("click");
+    await expect(page.getByLabel(/Negocio de prueba/)).toBeChecked();
     await page.getByRole("button", { name: "Crear negocio" }).click();
     await expect(page.getByText("Negocio creado.")).toBeVisible({ timeout: 20_000 }); // crea, redirige y compila la página en dev
     negocioId = new URL(page.url()).pathname.split("/").pop()!;

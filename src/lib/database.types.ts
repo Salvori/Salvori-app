@@ -14,30 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      direcciones_comprador: {
-        Row: {
-          actualizado_en: string
-          direccion: string
-          lat: number
-          lng: number
-          user_id: string
-        }
-        Insert: {
-          actualizado_en?: string
-          direccion: string
-          lat: number
-          lng: number
-          user_id?: string
-        }
-        Update: {
-          actualizado_en?: string
-          direccion?: string
-          lat?: number
-          lng?: number
-          user_id?: string
-        }
-        Relationships: []
-      }
       calificaciones: {
         Row: {
           aseo: number
@@ -88,6 +64,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      direcciones_comprador: {
+        Row: {
+          actualizado_en: string
+          direccion: string
+          lat: number
+          lng: number
+          user_id: string
+        }
+        Insert: {
+          actualizado_en?: string
+          direccion: string
+          lat: number
+          lng: number
+          user_id?: string
+        }
+        Update: {
+          actualizado_en?: string
+          direccion?: string
+          lat?: number
+          lng?: number
+          user_id?: string
+        }
+        Relationships: []
       }
       eventos: {
         Row: {
@@ -437,23 +437,6 @@ export type Database = {
     }
     Functions: {
       ahorro_comprador: { Args: { uid: string }; Returns: number }
-      editar_oferta: {
-        Args: {
-          p_categoria: Database["public"]["Enums"]["categoria"]
-          p_contenido: string
-          p_cupos_total: number
-          p_formato: string
-          p_foto_url: string
-          p_oferta_id: string
-          p_precio_final: number
-          p_precio_habitual: number
-          p_recogida_desde: string
-          p_recogida_hasta: string
-          p_tiempo_preparacion_min: number | null
-          p_titulo: string
-        }
-        Returns: Database["public"]["Tables"]["ofertas"]["Row"]
-      }
       calificaciones_negocio: {
         Args: { negocio_id: string }
         Returns: {
@@ -473,6 +456,50 @@ export type Database = {
         Returns: Json
       }
       cerrar_vencidas: { Args: never; Returns: Json }
+      editar_oferta: {
+        Args: {
+          p_categoria: Database["public"]["Enums"]["categoria"]
+          p_contenido: string
+          p_cupos_total: number
+          p_formato: string
+          p_foto_url: string
+          p_oferta_id: string
+          p_precio_final: number
+          p_precio_habitual: number
+          p_recogida_desde: string
+          p_recogida_hasta: string
+          p_tiempo_preparacion_min: number
+          p_titulo: string
+        }
+        Returns: {
+          categoria: Database["public"]["Enums"]["categoria"]
+          contenido: string
+          creado_en: string
+          cupos_disponibles: number
+          cupos_total: number
+          elaborado_en: string | null
+          es_prueba: boolean
+          estado: Database["public"]["Enums"]["estado_oferta"]
+          formato: string
+          foto_url: string
+          id: string
+          negocio_id: string
+          precio_final: number
+          precio_habitual: number
+          publicada_por: string | null
+          recogida_desde: string
+          recogida_hasta: string
+          tiempo_preparacion_min: number | null
+          tipo: Database["public"]["Enums"]["tipo_oferta"]
+          titulo: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "ofertas"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       es_miembro_negocio: { Args: { negocio: string }; Returns: boolean }
       has_role: {
         Args: { rol: Database["public"]["Enums"]["app_role"]; uid: string }

@@ -124,8 +124,11 @@ export async function publicarEnTresPasos(pagina: Page, titulo: string) {
   const foto = await lienzo.screenshot({ type: "png" });
   await lienzo.close();
 
-  await pagina.getByTestId("foto").setInputFiles({ name: "combo.png", mimeType: "image/png", buffer: foto });
-  await expect(pagina.getByAltText("Foto de la oferta")).toBeVisible({ timeout: 20_000 });
+  // Si el archivo llega antes de que la página se hidrate, nadie escucha el cambio: se reintenta.
+  await expect(async () => {
+    await pagina.getByTestId("foto").setInputFiles({ name: "combo.png", mimeType: "image/png", buffer: foto });
+    await expect(pagina.getByAltText("Foto de la oferta")).toBeVisible({ timeout: 10_000 });
+  }).toPass({ timeout: 45_000 });
   await pagina.getByRole("button", { name: "Siguiente" }).click();
 
   // Carril solo comercial: no hay selector de tipo ni «producto del día».

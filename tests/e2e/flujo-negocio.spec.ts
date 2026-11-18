@@ -53,21 +53,25 @@ test.describe("demo: negocio publica, comprador reserva, negocio confirma y entr
     await programada.getByRole("button", { name: "Pausar" }).click();
     await expect(programada).toContainText("En pausa");
 
-    // --- Cambia los cupos mientras no tenga reservas ---
-    await fila.getByText("Cambiar cupos").click();
-    await fila.getByLabel("Cupos", { exact: true }).fill("6");
-    await fila.getByRole("button", { name: "Guardar", exact: true }).click();
-    await expect(fila.getByText("Ahora tiene 6 cupos.")).toBeVisible();
+    // --- Edita la oferta: cambia los cupos (aún sin reservas) ---
+    await fila.getByRole("link", { name: "Editar" }).click();
+    await negocio.getByRole("button", { name: "Siguiente" }).click();
+    await negocio.getByLabel("Cupos disponibles").fill("6");
+    await negocio.getByRole("button", { name: "Siguiente" }).click();
+    await negocio.getByRole("button", { name: "Guardar cambios" }).click();
+    await expect(negocio.getByText("Cambios guardados.")).toBeVisible({ timeout: 20_000 });
     await expect(fila).toContainText("6/6 cupos");
 
     // --- Duplicar abre el formulario con los datos de la oferta ---
     await fila.getByRole("link", { name: "Duplicar" }).click();
     await expect(negocio.getByText(`Copia de «${titulo}»`)).toBeVisible();
-    await expect(negocio.getByAltText("Foto de la oferta")).toBeVisible();
-    await negocio.getByRole("button", { name: "Siguiente" }).click();
-    await expect(negocio.getByLabel("Título")).toHaveValue(titulo);
-    await expect(negocio.getByLabel("Precio Salvori")).toHaveValue("8000");
-    await expect(negocio.getByLabel("Cupos disponibles")).toHaveValue("6");
+    // Next guarda oculta la página de edición (mismo formulario): se mira solo la visible.
+    const copia = negocio.locator("main:visible");
+    await expect(copia.getByAltText("Foto de la oferta")).toBeVisible();
+    await copia.getByRole("button", { name: "Siguiente" }).click();
+    await expect(copia.getByLabel("Título")).toHaveValue(titulo);
+    await expect(copia.getByLabel("Precio Salvori")).toHaveValue("8000");
+    await expect(copia.getByLabel("Cupos disponibles")).toHaveValue("6");
 
     // El negocio deja abierta su bandeja.
     await negocio.goto(`/negocio?n=${slug}`);

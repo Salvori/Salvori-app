@@ -85,7 +85,8 @@ export async function editarOferta(_p: EstadoPublicar, form: FormData): Promise<
     p_cupos_total: d.cupos,
     p_recogida_desde: ventana.desde,
     p_recogida_hasta: ventana.hasta,
-    p_tiempo_preparacion_min: d.preparacion ?? null,
+    // La función acepta null (sin tiempo de preparación); el generador de tipos no lo refleja.
+    p_tiempo_preparacion_min: (d.preparacion ?? null) as number,
   });
   if (error) {
     const reservados = /Ya hay (\d+) cupos reservados/.exec(error.message);

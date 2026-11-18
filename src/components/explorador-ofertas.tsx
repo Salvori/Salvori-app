@@ -44,16 +44,24 @@ export function ExploradorOfertas({
   const [radio, setRadio] = useState<RadioKm>(3);
   const [vista, setVista] = useState<"lista" | "mapa">("lista");
 
+  // La portada conserva su estado entre navegaciones (Next guarda la ruta anterior):
+  // cuando cambia la dirección guardada, vuelve a tomarla como origen.
+  const dLat = direccion?.lat;
+  const dLng = direccion?.lng;
   useEffect(() => {
     const g = leerGuardada();
-    if (!g) return;
-    // Radio de este dispositivo; el punto solo si no hay dirección guardada.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setRadio(g.radio);
-    if (direccion) return;
-    setPunto(g.punto);
-    setEstado(g.estado);
-  }, [direccion]);
+    /* eslint-disable react-hooks/set-state-in-effect */
+    if (g) setRadio(g.radio);
+    if (dLat !== undefined && dLng !== undefined) {
+      setPunto({ lat: dLat, lng: dLng });
+      setEstado("direccion");
+    } else if (g) {
+      // Sin dirección guardada: la última ubicación elegida en este dispositivo.
+      setPunto(g.punto);
+      setEstado(g.estado);
+    }
+    /* eslint-enable react-hooks/set-state-in-effect */
+  }, [dLat, dLng]);
 
   useEffect(() => {
     if (estado !== "gps" && estado !== "manual") return;

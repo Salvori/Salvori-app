@@ -41,7 +41,7 @@ test.describe("demo del comprador: combo editado, dirección, mapa y ticket", ()
     const negocio = await ctxNegocio.newPage();
     await negocio.goto(`/negocio/ofertas?n=${slug}`);
     await negocio.locator(`[data-oferta="${datos.ofertaId}"]`).getByRole("link", { name: "Editar" }).click();
-    await expect(negocio.getByRole("heading", { name: `Editar «${datos.titulo}»` })).toBeVisible();
+    await expect(negocio.getByRole("heading", { name: `Editar «${datos.titulo}»` })).toBeVisible({ timeout: 20_000 }); // la primera visita compila la ruta en dev
     await expect(negocio.getByAltText("Foto de la oferta")).toBeVisible();
     await negocio.getByRole("button", { name: "Siguiente" }).click();
     await expect(negocio.getByLabel("Título")).toHaveValue(datos.titulo);
@@ -73,7 +73,7 @@ test.describe("demo del comprador: combo editado, dirección, mapa y ticket", ()
     const caja = (await mapa.boundingBox())!;
     await comprador.mouse.click(caja.x + caja.width / 2 + 30, caja.y + caja.height / 2 + 20);
     await comprador.getByRole("button", { name: "Guardar dirección" }).click();
-    await expect(comprador).toHaveURL(/\/$/, { timeout: 20_000 }); // vuelve a la portada (next=/)
+    await expect(comprador).toHaveURL(new URL("/", baseURL).toString(), { timeout: 20_000 }); // vuelve a la portada (next=/)
     const { data: dir } = await admin().from("direcciones_comprador").select("direccion, lat, lng").eq("user_id", compradorId).single();
     expect(dir!.direccion).toBe("Calle 5 # 4-50, Centro");
     expect(Math.abs(dir!.lat - 2.4419)).toBeLessThan(0.02);
