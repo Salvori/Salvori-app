@@ -9,6 +9,7 @@ import { etiquetaFormato } from "@/lib/esquema-oferta";
 import { ESTADO_COMPRADOR, muestraCodigo, textoEstado, type EstadoReserva } from "@/lib/estados";
 import { formatCOP } from "@/lib/formato";
 import { textoVentana } from "@/lib/ofertas";
+import { instanteActual } from "@/lib/tiempo";
 import { usuarioActual } from "@/lib/sesion";
 import { enlaceWhatsApp, mensajePedidoWhatsApp } from "@/lib/texto";
 import { createClient } from "@/lib/supabase/server";
@@ -42,6 +43,7 @@ async function Lista({ searchParams }: { searchParams: Promise<{ nueva?: string 
   ]);
   if (error) throw new Error("No pudimos cargar tus reservas.");
   const reservas = data ?? [];
+  const ahora = instanteActual();
   const whatsapp = new Map((contactos ?? []).map((c) => [c.negocio_id, c.telefono_whatsapp]));
   const comprador = (cuenta.user?.user_metadata?.nombre as string | undefined)?.trim() || (usuario.email ?? "").split("@")[0] || "Comprador";
 
@@ -85,7 +87,7 @@ async function Lista({ searchParams }: { searchParams: Promise<{ nueva?: string 
             return (
               <li key={r.id} className="rounded-2xl bg-card p-5 shadow-card" data-estado={estado}>
                 <span className={`inline-block rounded-full px-3 py-1 text-sm font-bold ${TONO[info.tono]}`}>
-                  {textoEstado(estado, r.motivo_rechazo)}
+                  {r.incumplida_por ? `${r.negocio_nombre} no pudo cumplir: ${r.motivo_incumplimiento}` : textoEstado(estado, r.motivo_rechazo)}
                 </span>
                 <h2 className="mt-3 font-display text-lg font-bold leading-snug text-primary">{r.titulo}</h2>
                 <p className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
@@ -156,6 +158,11 @@ async function Lista({ searchParams }: { searchParams: Promise<{ nueva?: string 
                 {estado === "solicitada" && (
                   <div className="mt-4">
                     <BotonCancelar reservaId={r.id} />
+                  </div>
+                )}
+                {(estado === "confirmada" || estado === "lista") && new Date(r.recogida_hasta).getTime() > ahora && (
+                  <div className="mt-3 text-center">
+                    <BotonCancelar reservaId={r.id} confirmada />
                   </div>
                 )}
               </li>

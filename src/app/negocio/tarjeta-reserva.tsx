@@ -18,7 +18,28 @@ export type ReservaBandeja = {
   recogida_desde: string;
   recogida_hasta: string;
   motivo_rechazo: string | null;
+  /** Puntaje de cumplimiento del comprador (null = «Nuevo»). */
+  puntaje_comprador?: number | null;
+  cerradas_comprador?: number | null;
+  incumplida_por?: string | null;
+  motivo_incumplimiento?: string | null;
 };
+
+/** «★ 4,5 · cumple» o «Nuevo»: el negocio lo ve antes de aceptar. */
+function PuntajeComprador({ puntaje, cerradas }: { puntaje?: number | null; cerradas?: number | null }) {
+  if (puntaje === null || puntaje === undefined || !cerradas) {
+    return <span className="rounded-full bg-secondary px-2 py-0.5 text-xs font-semibold text-secondary-foreground">Comprador nuevo</span>;
+  }
+  const bajo = puntaje < 3;
+  return (
+    <span
+      className={`rounded-full px-2 py-0.5 text-xs font-semibold ${bajo ? "bg-destructive/10 text-destructive" : "bg-secondary text-secondary-foreground"}`}
+      title={`Puntaje de cumplimiento en sus últimas ${cerradas} reservas`}
+    >
+      Cumplimiento {puntaje.toFixed(1).replace(".", ",")}/5{bajo ? " · suele no llegar" : ""}
+    </span>
+  );
+}
 
 const ETIQUETA: Record<string, string> = {
   solicitada: "Nueva: confirma o rechaza",
@@ -46,7 +67,7 @@ export function TarjetaReserva({
   children?: React.ReactNode;
 }) {
   const [estado, accion, enviando] = useActionState<EstadoGestion, FormData>(gestionarReserva, null);
-  const [modo, setModo] = useState<"nada" | "rechazar" | "entregar">("nada");
+  const [modo, setModo] = useState<"nada" | "rechazar" | "entregar" | "incumplir">("nada");
   const minutos = Math.floor((ahora - new Date(r.solicitada_en).getTime()) / 60000);
   const demorada = r.estado === "solicitada" && minutos >= 15;
   const vencida = ahora > new Date(r.recogida_hasta).getTime();
@@ -63,7 +84,7 @@ export function TarjetaReserva({
             r.estado === "solicitada" ? "bg-accent text-accent-foreground" : activa ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
           }`}
         >
-          {ETIQUETA[r.estado] ?? r.estado}
+          {r.incumplida_por ? "No pudiste cumplir" : (ETIQUETA[r.estado] ?? r.estado)}
         </span>
         <span className={`text-xs ${demorada ? "font-bold text-destructive" : "text-muted-foreground"}`}>
           {minutos < 1 ? "hace un momento" : `hace ${minutos} min`}
@@ -77,9 +98,15 @@ export function TarjetaReserva({
         <strong>{r.nombre_comprador}</strong> · {formatCOP(r.precio_unitario * r.cantidad)} · recoge de {formatHora(r.recogida_desde)} a{" "}
         {formatHora(r.recogida_hasta)}
       </p>
+      {activa && (
+        <p className="mt-1.5">
+          <PuntajeComprador puntaje={r.puntaje_comprador} cerradas={r.cerradas_comprador} />
+        </p>
+      )}
       {r.observaciones && <p className="mt-1 rounded-xl bg-muted px-3 py-2 text-sm">«{r.observaciones}»</p>}
       {r.estado === "rechazada" && r.motivo_rechazo && <p className="mt-1 text-sm text-muted-foreground">Motivo: {r.motivo_rechazo}</p>}
       {r.estado === "entregada" && r.metodo_pago && <p className="mt-1 text-sm text-muted-foreground">Pagó con {r.metodo_pago}</p>}
+      {r.incumplida_por && r.motivo_incumplimiento && <p className="mt-1 text-sm text-muted-foreground">Motivo: {r.motivo_incumplimiento}</p>}
 
       {activa && (
         <form action={accion} className="mt-4 flex flex-col gap-3">
@@ -131,7 +158,29 @@ export function TarjetaReserva({
                   No la recogió
                 </button>
               )}
+              {!vencida && (
+                <button type="button" onClick={() => setModo("incumplir")} className="col-span-2 py-2 text-sm font-semibold text-destructive underline underline-offset-4">
+                  No pude cumplir
+                </button>
+              )}
             </div>
+          )}
+
+          {modo === "incumplir" && (
+            <>
+              <p className="text-sm text-muted-foreground">
+                Se cancela la reserva y le avisamos al comprador. Cuenta como un incumplimiento (una calificación de 1).
+              </p>
+              <input name="motivo" required maxLength={300} placeholder="¿Qué pasó? (ej.: se agotó, cerramos temprano)" className="rounded-xl border bg-background px-4 py-3" />
+              <div className="grid grid-cols-2 gap-2">
+                <button type="button" onClick={() => setModo("nada")} className={`${btn} border`}>
+                  Volver
+                </button>
+                <button name="estado" value="incumplida" disabled={enviando} className={`${btn} bg-destructive text-white`}>
+                  Cancelar reserva
+                </button>
+              </div>
+            </>
           )}
 
           {modo === "entregar" && (

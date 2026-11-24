@@ -17,7 +17,12 @@ export default async function AdminNegocios() {
     .order("nombre");
   if (error) throw new Error("No pudimos cargar los negocios.");
   const negocios = data ?? [];
-  const { count: interesados } = await supabase.from("interesados").select("id", { count: "exact", head: true });
+  const [{ count: interesados }, { data: incumplidos }] = await Promise.all([
+    supabase.from("interesados").select("id", { count: "exact", head: true }),
+    supabase.rpc("incumplimientos_recientes"),
+  ]);
+  // Negocios con 2 o más «No pude cumplir» en los últimos 7 días: se resaltan (sin bloqueo automático).
+  const alertas = new Map((incumplidos ?? []).filter((i) => i.total >= 2).map((i) => [i.negocio_id, i.total]));
 
   return (
     <>
@@ -34,13 +39,22 @@ export default async function AdminNegocios() {
       ) : (
         <ul className="space-y-3">
           {negocios.map((n) => (
-            <li key={n.id} className={`rounded-2xl bg-card p-4 shadow-card ${n.activo ? "" : "opacity-60"}`}>
+            <li
+              key={n.id}
+              data-alerta={alertas.has(n.id) || undefined}
+              className={`rounded-2xl bg-card p-4 shadow-card ${n.activo ? "" : "opacity-60"} ${alertas.has(n.id) ? "ring-2 ring-destructive" : ""}`}
+            >
               <div className="flex items-start justify-between gap-2">
                 <p className="font-display text-lg font-bold text-primary">{n.nombre}</p>
                 <span className="shrink-0 rounded-full bg-muted px-2.5 py-0.5 text-xs font-bold text-muted-foreground">
                   {!n.activo ? "Inactivo" : n.es_prueba ? "Prueba" : "Activo"}
                 </span>
               </div>
+              {alertas.has(n.id) && (
+                <p className="mb-1 text-sm font-bold text-destructive">
+                  {alertas.get(n.id)} incumplimientos en los últimos 7 días: conviene llamarlo.
+                </p>
+              )}
               <p className="text-sm text-muted-foreground">
                 {CATEGORIA_LABEL[n.categoria] ?? n.categoria} · {n.direccion || "Sin dirección"}
                 {n.telefono_whatsapp ? "" : " · Sin WhatsApp"}

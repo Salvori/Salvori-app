@@ -43,17 +43,17 @@ async function Ficha({ params }: { params: Promise<{ id: string }> }) {
   if (!o || !o.negocio) notFound();
 
   const origen = origenValido((await cookies()).get(COOKIE_ORIGEN)?.value);
-  const [usuario, calificaciones] = await Promise.all([
+  const [usuario, calificaciones, resumen] = await Promise.all([
     usuarioActual(),
     db.rpc("calificaciones_negocio", { negocio_id: o.negocio.id }).then((r) => r.data ?? []),
+    // Promedio público: calificaciones + cada «No pude cumplir» como un 1 (P4 · 10).
+    db.rpc("resumen_calificaciones", { negocio_ids: [o.negocio.id] }).then((r) => r.data?.[0] ?? null),
     db.rpc("registrar_vista", { oferta_id: o.id, origen }).then(() => null),
   ]);
 
   const foto = urlFoto(o.foto_url);
   const agotada = o.estado === "agotada" || o.cupos_disponibles <= 0;
-  const promedio = calificaciones.length
-    ? calificaciones.reduce((s, c) => s + (c.calidad + c.aseo + c.atencion) / 3, 0) / calificaciones.length
-    : null;
+  const promedio = resumen ? Number(resumen.promedio) : null;
   const horario = textoHorario(o.negocio.horario);
 
   return (
@@ -82,7 +82,7 @@ async function Ficha({ params }: { params: Promise<{ id: string }> }) {
           <span className="ml-2 flex items-center gap-1 font-semibold text-foreground">
             <Star className="size-4 fill-accent text-accent" aria-hidden />
             {promedio.toFixed(1).replace(".", ",")}
-            <span className="font-normal text-muted-foreground">({calificaciones.length})</span>
+            <span className="font-normal text-muted-foreground">({resumen?.total})</span>
           </span>
         ) : (
           <span className="ml-2 text-xs font-semibold text-primary">Nuevo en Salvori</span>

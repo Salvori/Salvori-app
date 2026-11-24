@@ -98,6 +98,9 @@ export function FormularioReserva({ ofertaId, precioFinal, precioHabitual, cupos
         Ahorras {formatCOP((precioHabitual - precioFinal) * cantidad)}. Pagas en el local al recoger, cuando el negocio
         confirme.
       </p>
+      <p className="text-center text-xs text-muted-foreground">
+        Si no llegas, tu puntaje baja; si el negocio no cumple, baja el suyo.
+      </p>
     </form>
   );
 }
