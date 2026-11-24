@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
-import { Clock, MapPin, MessageCircle } from "lucide-react";
+import { Clock, MapPin, MessageCircle, Star } from "lucide-react";
 import { Cabecera } from "@/components/cabecera";
 import { LogoNegocio } from "@/components/logo-negocio";
 import { etiquetaFormato } from "@/lib/esquema-oferta";
@@ -14,6 +14,7 @@ import { enlaceWhatsApp, mensajePedidoWhatsApp } from "@/lib/texto";
 import { createClient } from "@/lib/supabase/server";
 import { salir } from "./acciones";
 import { BotonCancelar } from "./boton-cancelar";
+import { Calificar } from "./calificar";
 import { TicketReserva } from "./ticket-reserva";
 import { TiempoReal } from "./tiempo-real";
 
@@ -134,6 +135,14 @@ async function Lista({ searchParams }: { searchParams: Promise<{ nueva?: string 
                     Ahorraste {formatCOP((r.precio_habitual_unitario - r.precio_unitario) * r.cantidad)}
                   </p>
                 )}
+                {estado === "entregada" &&
+                  (r.calificada ? (
+                    <p className="mt-2 flex items-center gap-1.5 text-sm text-muted-foreground">
+                      <Star className="size-4 fill-accent text-accent" aria-hidden /> Ya calificaste esta compra. ¡Gracias!
+                    </p>
+                  ) : (
+                    <Calificar reservaId={r.id} negocioId={r.negocio_id} negocio={r.negocio_nombre} />
+                  ))}
                 {enlaceWa && (
                   <a
                     href={enlaceWa}
