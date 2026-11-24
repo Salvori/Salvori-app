@@ -21,9 +21,10 @@ const MANDARINA = "#F57A35";
 const CREMA = "#F8F5EA";
 const CARBON = "#242824";
 
-const esc = (t: string) => t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+export const esc = (t: string) => t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
-function plantilla(titular: string, cuerpo: string, boton: { texto: string; url: string }): string {
+/** Plantilla común de los correos de Salvori. `pie` (HTML) va al final, p. ej. el enlace de baja. */
+export function plantilla(titular: string, cuerpo: string, boton: { texto: string; url: string }, pie = ""): string {
   return `<!doctype html>
 <html lang="es-CO">
 <body style="margin:0;padding:0;background:${CREMA};font-family:'Source Sans 3',Arial,Helvetica,sans-serif;color:${CARBON};">
@@ -38,7 +39,7 @@ function plantilla(titular: string, cuerpo: string, boton: { texto: string; url:
 ${cuerpo}
 <p style="margin:24px 0 0;"><a href="${esc(boton.url)}" style="display:inline-block;background:${MANDARINA};color:${CARBON};font-weight:700;text-decoration:none;padding:12px 24px;border-radius:999px;">${esc(boton.texto)}</a></p>
 </td></tr>
-<tr><td style="padding:16px 24px;background:${CREMA};font-size:13px;color:#5b615b;">Salvori · Lo bueno se aprovecha. Popayán, Colombia.</td></tr>
+<tr><td style="padding:16px 24px;background:${CREMA};font-size:13px;color:#5b615b;">Salvori · Lo bueno se aprovecha. Popayán, Colombia.${pie}</td></tr>
 </table>
 </td></tr>
 </table>
@@ -46,7 +47,7 @@ ${cuerpo}
 </html>`;
 }
 
-const p = (html: string) => `<p style="margin:0 0 10px;font-size:16px;line-height:1.5;">${html}</p>`;
+export const p = (html: string) => `<p style="margin:0 0 10px;font-size:16px;line-height:1.5;">${html}</p>`;
 
 export function correoReserva(d: DatosCorreoReserva): { asunto: string; texto: string; html: string } {
   const pedido = `${d.cantidad} × ${d.titulo}`;

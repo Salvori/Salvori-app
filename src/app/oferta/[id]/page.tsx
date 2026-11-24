@@ -5,7 +5,7 @@ import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { Suspense } from "react";
-import { ChefHat, Clock, MapPin, Star, Store } from "lucide-react";
+import { ChefHat, Clock, Mail, MapPin, MessageCircle, Star, Store } from "lucide-react";
 import { Cabecera } from "@/components/cabecera";
 import { LogoNegocio } from "@/components/logo-negocio";
 import { etiquetaFormato } from "@/lib/esquema-oferta";
@@ -14,6 +14,7 @@ import { formatCOP, formatHora } from "@/lib/formato";
 import { CATEGORIA_LABEL, descuento, textoDisponibles, textoVentana, urlFoto } from "@/lib/ofertas";
 import { usuarioActual } from "@/lib/sesion";
 import { clientePublico } from "@/lib/supabase/publico";
+import { telefonoWhatsApp } from "@/lib/texto";
 import { FormularioReserva } from "./formulario-reserva";
 
 export const metadata: Metadata = { title: "Oferta" };
@@ -35,7 +36,7 @@ async function Ficha({ params }: { params: Promise<{ id: string }> }) {
   const { data: o } = await db
     .from("ofertas")
     .select(
-      "id, tipo, formato, tamano, lleva, paga, titulo, contenido, categoria, foto_url, precio_habitual, precio_final, cupos_disponibles, recogida_desde, recogida_hasta, tiempo_preparacion_min, elaborado_en, estado, negocio:negocios(id, nombre, slug, logo_url, direccion, horario)",
+      "id, tipo, formato, tamano, lleva, paga, titulo, contenido, categoria, foto_url, precio_habitual, precio_final, cupos_disponibles, recogida_desde, recogida_hasta, tiempo_preparacion_min, elaborado_en, estado, negocio:negocios(id, nombre, slug, logo_url, direccion, horario, telefono_whatsapp)",
     )
     .eq("id", id)
     .maybeSingle();
@@ -150,6 +151,20 @@ async function Ficha({ params }: { params: Promise<{ id: string }> }) {
             porPaquetes={o.formato === "lleva_paga"}
             conSesion={Boolean(usuario)}
           />
+        )}
+        {!agotada && (
+          <ul className="mt-4 space-y-1.5 border-t pt-4 text-sm text-muted-foreground" aria-label="Cómo te avisamos">
+            {telefonoWhatsApp(o.negocio.telefono_whatsapp) && (
+              <li className="flex items-center gap-2">
+                <MessageCircle className="size-4 shrink-0 text-primary" aria-hidden />
+                Reserva aquí y avísale al negocio por WhatsApp.
+              </li>
+            )}
+            <li className="flex items-center gap-2">
+              <Mail className="size-4 shrink-0 text-primary" aria-hidden />
+              Te avisamos por correo cuando el negocio confirme.
+            </li>
+          </ul>
         )}
       </section>
 

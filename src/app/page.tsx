@@ -2,10 +2,12 @@ import { Suspense } from "react";
 import { MapPin } from "lucide-react";
 import { Cabecera } from "@/components/cabecera";
 import { ExploradorOfertas } from "@/components/explorador-ofertas";
+import { FormularioInteresados } from "@/components/formulario-interesados";
 import { ComoFunciona, Confianza, EjemploCombo, NegociosAliados, ParaNegocios, Preguntas } from "@/components/portada";
 import { ofertasPublicas } from "@/lib/catalogo";
 import { direccionGuardada } from "@/lib/direccion";
 import { usuarioActual } from "@/lib/sesion";
+import { supabasePublicEnv } from "@/lib/supabase/env";
 
 async function Catalogo() {
   const ofertas = await ofertasPublicas();
@@ -46,6 +48,31 @@ function contactoNegocios() {
   if (!numero) return "/entrar?next=/negocio";
   const texto = encodeURIComponent("Hola, tengo un negocio en Popayán y quiero publicar mis combos en Salvori.");
   return `https://wa.me/${numero}?text=${texto}`;
+}
+
+/** «Avísame cuando haya combos cerca». Sin Supabase en el entorno no se muestra. */
+async function AvisameCerca() {
+  if (!supabasePublicEnv()) return null;
+  const usuario = await usuarioActual();
+  const direccion = usuario ? await direccionGuardada(usuario.id) : null;
+  return (
+    <section id="avisame" className="py-14" aria-labelledby="titulo-avisame">
+      <div className="mx-auto grid max-w-5xl gap-8 px-5 md:grid-cols-2">
+        <div>
+          <h2 id="titulo-avisame" className="font-display text-3xl font-extrabold text-primary md:text-4xl">
+            Avísame cuando haya combos cerca
+          </h2>
+          <p className="mt-2 max-w-md text-muted-foreground">
+            Te escribimos cuando un negocio publique un combo a la distancia que elijas. Máximo un correo cada 6 horas, y
+            te das de baja cuando quieras.
+          </p>
+        </div>
+        <div className="rounded-2xl bg-card p-5 shadow-card">
+          <FormularioInteresados correoInicial={usuario?.email ?? ""} direccion={direccion} />
+        </div>
+      </div>
+    </section>
+  );
 }
 
 function CargandoCatalogo() {
@@ -97,6 +124,9 @@ export default function Portada() {
         <ComoFunciona />
         <Suspense fallback={<CargandoCatalogo />}>
           <Catalogo />
+        </Suspense>
+        <Suspense fallback={null}>
+          <AvisameCerca />
         </Suspense>
         <Confianza />
         <NegociosAliados />

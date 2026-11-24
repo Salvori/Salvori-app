@@ -131,6 +131,51 @@ export type Database = {
           },
         ]
       }
+      interesados: {
+        Row: {
+          autoriza_datos: boolean
+          autorizado_en: string
+          correo: string
+          creado_en: string
+          id: string
+          lat: number
+          lng: number
+          origen_ubicacion: string
+          radio_km: number
+          token_baja: string
+          ultimo_envio: string | null
+          user_id: string | null
+        }
+        Insert: {
+          autoriza_datos: boolean
+          autorizado_en?: string
+          correo: string
+          creado_en?: string
+          id?: string
+          lat: number
+          lng: number
+          origen_ubicacion: string
+          radio_km: number
+          token_baja?: string
+          ultimo_envio?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          autoriza_datos?: boolean
+          autorizado_en?: string
+          correo?: string
+          creado_en?: string
+          id?: string
+          lat?: number
+          lng?: number
+          origen_ubicacion?: string
+          radio_km?: number
+          token_baja?: string
+          ultimo_envio?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       negocio_miembros: {
         Row: {
           creado_en: string
@@ -345,6 +390,32 @@ export type Database = {
           },
         ]
       }
+      ofertas_avisadas: {
+        Row: {
+          enviados: number
+          oferta_id: string
+          procesada_en: string
+        }
+        Insert: {
+          enviados?: number
+          oferta_id: string
+          procesada_en?: string
+        }
+        Update: {
+          enviados?: number
+          oferta_id?: string
+          procesada_en?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ofertas_avisadas_oferta_id_fkey"
+            columns: ["oferta_id"]
+            isOneToOne: true
+            referencedRelation: "ofertas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reservas: {
         Row: {
           cancelada_en: string | null
@@ -472,6 +543,14 @@ export type Database = {
         Returns: Json
       }
       cerrar_vencidas: { Args: never; Returns: Json }
+      contacto_negocios_comprador: {
+        Args: never
+        Returns: {
+          negocio_id: string
+          telefono_whatsapp: string
+        }[]
+      }
+      dar_de_baja_interesado: { Args: { token: string }; Returns: boolean }
       editar_oferta: {
         Args: {
           p_categoria: Database["public"]["Enums"]["categoria"]

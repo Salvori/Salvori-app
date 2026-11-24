@@ -2,8 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { z } from "zod";
+import { avisarNegocio } from "@/lib/avisos-negocio";
 import { mensajeAmigable } from "@/lib/errores";
+import { origenActual } from "@/lib/sesion";
 import { createClient } from "@/lib/supabase/server";
 
 export type EstadoCancelar = { error: string } | null;
@@ -19,6 +22,9 @@ export async function cancelarReserva(_previo: EstadoCancelar, form: FormData): 
     datos: {},
   });
   if (error) return { error: mensajeAmigable(error) };
+  const reservaId = id.data;
+  const origen = await origenActual();
+  after(() => avisarNegocio(reservaId, "cancelada", origen));
   revalidatePath("/mis-reservas");
   return null;
 }

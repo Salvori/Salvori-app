@@ -2,11 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { z } from "zod";
+import { avisarInteresados } from "@/lib/avisos-interesados";
 import { esquemaOferta, ventanaDeHoy } from "@/lib/esquema-oferta";
 import { mensajeAmigable } from "@/lib/errores";
 import { createClient } from "@/lib/supabase/server";
-import { usuarioActual } from "@/lib/sesion";
+import { origenActual, usuarioActual } from "@/lib/sesion";
 
 export type EstadoPublicar = { error: string } | null;
 
@@ -28,7 +30,7 @@ export async function publicarOferta(_p: EstadoPublicar, form: FormData): Promis
   const { data: negocio } = await supabase.from("negocios").select("es_prueba").eq("id", d.negocioId).maybeSingle();
   if (!negocio) return { error: "No tienes acceso a este negocio." };
 
-  const { error } = await supabase.from("ofertas").insert({
+  const { data: nueva, error } = await supabase.from("ofertas").insert({
     negocio_id: d.negocioId,
     tipo: "comercial", // carril solo comercial (decisión del 14 nov)
     formato: d.formato,
@@ -49,8 +51,14 @@ export async function publicarOferta(_p: EstadoPublicar, form: FormData): Promis
     estado: "activa",
     publicada_por: usuario.id,
     es_prueba: negocio.es_prueba,
-  });
+  }).select("id").single();
   if (error) return { error: "No pudimos publicar la oferta. Revisa los datos e intenta de nuevo." };
+
+  // Correo a los interesados cercanos, después de responder (con tope y máximo uno cada 6 horas).
+  if (nueva?.id) {
+    const origen = await origenActual();
+    after(() => avisarInteresados([nueva.id], origen));
+  }
 
   const base = d.destino === "admin" ? "/admin/publicar" : "/negocio/ofertas";
   redirect(`${base}?n=${encodeURIComponent(d.slug)}&publicada=1`);

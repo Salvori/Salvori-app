@@ -1,7 +1,7 @@
 import "server-only";
 import nodemailer from "nodemailer";
 
-export type Correo = { para: string; asunto: string; texto: string; html: string };
+export type Correo = { para: string; asunto: string; texto: string; html: string; cabeceras?: Record<string, string> };
 export type ResultadoCorreo = { enviado: true } | { enviado: false; motivo: "sin-configurar" | "destinatario-de-prueba" | "error" };
 
 type Entorno = Record<string, string | undefined>;
@@ -34,6 +34,7 @@ export async function enviarCorreo(correo: Correo, env: Entorno = process.env): 
       subject: correo.asunto,
       text: correo.texto,
       html: correo.html,
+      ...(correo.cabeceras ? { headers: correo.cabeceras } : {}),
     });
     return { enviado: true };
   } catch (e) {
