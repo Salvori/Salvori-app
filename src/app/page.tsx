@@ -3,8 +3,10 @@ import { MapPin } from "lucide-react";
 import { Cabecera } from "@/components/cabecera";
 import { ExploradorOfertas } from "@/components/explorador-ofertas";
 import { FormularioInteresados } from "@/components/formulario-interesados";
+import { LineaPlanes } from "@/components/linea-planes";
 import { ComoFunciona, Confianza, EjemploCombo, NegociosAliados, ParaNegocios, Preguntas } from "@/components/portada";
 import { ofertasPublicas } from "@/lib/catalogo";
+import { TEXTO_PLANES_FIJO } from "@/lib/planes";
 import { direccionGuardada } from "@/lib/direccion";
 import { usuarioActual } from "@/lib/sesion";
 import { supabasePublicEnv } from "@/lib/supabase/env";
@@ -130,7 +132,14 @@ export default function Portada() {
         </Suspense>
         <Confianza />
         <NegociosAliados />
-        <ParaNegocios contacto={contactoNegocios()} />
+        <ParaNegocios
+          contacto={contactoNegocios()}
+          precios={
+            <Suspense fallback={TEXTO_PLANES_FIJO}>
+              <LineaPlanes />
+            </Suspense>
+          }
+        />
         <Preguntas />
       </main>
       <footer className="mx-auto flex w-full max-w-5xl flex-wrap gap-x-4 gap-y-1 px-5 py-8 text-sm text-muted-foreground">

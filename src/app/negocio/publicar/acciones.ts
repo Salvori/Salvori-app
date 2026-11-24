@@ -7,6 +7,7 @@ import { z } from "zod";
 import { avisarInteresados } from "@/lib/avisos-interesados";
 import { esquemaOferta, ventanaDeHoy } from "@/lib/esquema-oferta";
 import { mensajeAmigable } from "@/lib/errores";
+import { mensajePlan } from "@/lib/planes";
 import { createClient } from "@/lib/supabase/server";
 import { origenActual, usuarioActual } from "@/lib/sesion";
 
@@ -52,7 +53,8 @@ export async function publicarOferta(_p: EstadoPublicar, form: FormData): Promis
     publicada_por: usuario.id,
     es_prueba: negocio.es_prueba,
   }).select("id").single();
-  if (error) return { error: "No pudimos publicar la oferta. Revisa los datos e intenta de nuevo." };
+  // Límite del plan o mensualidad vencida: el disparador de la base trae el motivo en español.
+  if (error) return { error: mensajePlan(error) ?? "No pudimos publicar la oferta. Revisa los datos e intenta de nuevo." };
 
   // Correo a los interesados cercanos, después de responder (con tope y máximo uno cada 6 horas).
   if (nueva?.id) {

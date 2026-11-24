@@ -10,6 +10,7 @@ import { AvisosNegocio } from "./avisos";
 import { contextoNegocio } from "./contexto";
 import { MiLocal, type DatosLocal } from "./mi-local";
 import { NavegacionNegocio } from "./navegacion";
+import { TarjetaPlan } from "./tarjeta-plan";
 import { TarjetaReserva, type ReservaBandeja } from "./tarjeta-reserva";
 
 export const metadata: Metadata = { title: "Reservas" };
@@ -54,6 +55,7 @@ async function Bandeja({ searchParams }: { searchParams: Promise<{ n?: string }>
     <>
       <NavegacionNegocio actual="/negocio" negocio={negocio} negocios={negocios} />
       <AvisosNegocio negocioId={negocio.id} pendientes={pendientes} correos={correos} />
+      <TarjetaPlan negocioId={negocio.id} />
       <div className="mb-4 grid grid-cols-3 gap-2 text-center">
         <div className="rounded-2xl bg-card p-3 shadow-card">
           <p className="font-display text-2xl font-extrabold text-mandarina-texto">{pendientes}</p>
