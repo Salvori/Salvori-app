@@ -1,8 +1,11 @@
 import { expect, test } from "@playwright/test";
-import { USUARIOS, clienteComo, cookiesDeSesion, crearOfertaTemporal, hayStaging } from "./staging";
+import { USUARIOS, clienteComo, cookiesDeSesion, crearOfertaTemporal, hayStaging, SIN_MIGRACION_MARCA, faltaMigracionMarca } from "./staging";
 
 test.describe("flujo del comprador (staging)", () => {
   test.skip(!hayStaging, "Necesita .env.local de staging y los usuarios de prueba.");
+  test.beforeAll(async () => {
+    test.skip(await faltaMigracionMarca(), SIN_MIGRACION_MARCA);
+  });
   test.describe.configure({ mode: "serial", timeout: 90_000 });
 
   let datos: Awaited<ReturnType<typeof crearOfertaTemporal>>;
@@ -17,7 +20,7 @@ test.describe("flujo del comprador (staging)", () => {
     await page.goto("/");
     const tarjeta = page.locator("article", { hasText: datos.titulo });
     await expect(tarjeta).toBeVisible();
-    await expect(tarjeta.getByText("Quedan 3")).toBeVisible();
+    await expect(tarjeta.getByText("3 unidades disponibles")).toBeVisible();
     await tarjeta.getByRole("link", { name: "Reservar" }).click();
     await expect(page.getByRole("heading", { name: datos.titulo })).toBeVisible();
     await page.getByRole("link", { name: "Entrar para reservar" }).click();

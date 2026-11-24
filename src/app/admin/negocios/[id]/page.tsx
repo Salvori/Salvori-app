@@ -7,6 +7,7 @@ import { horarioATexto } from "@/lib/texto";
 import { desvincularUsuario } from "../../acciones";
 import { requerirAdmin } from "../../contexto";
 import { NavegacionAdmin } from "../../navegacion";
+import { SubirLogo } from "@/components/subir-logo";
 import { FormularioNegocio } from "../formulario-negocio";
 import { VincularUsuario } from "./vincular-usuario";
 
@@ -23,7 +24,7 @@ export default async function EditarNegocio(props: PageProps<"/admin/negocios/[i
   const supabase = await createClient();
   const { data: n } = await supabase
     .from("negocios")
-    .select("id, nombre, slug, categoria, descripcion, direccion, lat, lng, horario, telefono_whatsapp, activo, es_prueba")
+    .select("id, nombre, slug, categoria, descripcion, direccion, lat, lng, horario, telefono_whatsapp, activo, es_prueba, logo_url")
     .eq("id", id)
     .maybeSingle();
   if (!n) notFound();
@@ -50,6 +51,19 @@ export default async function EditarNegocio(props: PageProps<"/admin/negocios/[i
           Negocio creado. Ahora vincula a quien lo va a operar.
         </p>
       )}
+
+      <section className="mb-8 rounded-2xl bg-card p-5 shadow-card" aria-labelledby="titulo-logo">
+        <h3 id="titulo-logo" className="mb-3 font-display text-lg font-bold text-primary">
+          Logo
+        </h3>
+        <SubirLogo negocioId={n.id} nombre={n.nombre} logo={n.logo_url} />
+        <p className="mt-3 text-sm text-muted-foreground">
+          Sale en las tarjetas, el mapa, la ficha y el ticket. Ficha pública:{" "}
+          <Link href={`/n/${n.slug}`} className="font-semibold text-primary underline underline-offset-4">
+            /n/{n.slug}
+          </Link>
+        </p>
+      </section>
 
       <section className="mb-8 rounded-2xl bg-card p-5 shadow-card" aria-labelledby="titulo-operadores">
         <h3 id="titulo-operadores" className="font-display text-lg font-bold text-primary">

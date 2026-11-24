@@ -5,7 +5,7 @@ import { useActionState, useMemo, useState } from "react";
 import { Camera, ChevronLeft, Clock, ImagePlus } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { formatCOP } from "@/lib/formato";
-import { FORMATO_LABEL, FORMATOS, type Formato } from "@/lib/esquema-oferta";
+import { etiquetaFormato, FORMATO_LABEL, FORMATOS, preciosLlevaPaga, type Formato } from "@/lib/esquema-oferta";
 import { CATEGORIA_LABEL, descuento, textoDescuento } from "@/lib/ofertas";
 import { editarOferta, publicarOferta, type EstadoPublicar } from "./acciones";
 
@@ -23,9 +23,13 @@ export type OfertaInicial = {
   formato?: Formato;
   titulo: string;
   contenido: string;
+  tamano?: string;
   categoria: string;
   precioHabitual: string;
   precioFinal: string;
+  precioUnitario?: string;
+  lleva?: string;
+  paga?: string;
   cupos: string;
   desde?: string;
   hasta?: string;
@@ -58,9 +62,13 @@ export function FormularioPublicar({
     formato: (inicial?.formato ?? "combo") as Formato,
     titulo: inicial?.titulo ?? "",
     contenido: inicial?.contenido ?? "",
+    tamano: inicial?.tamano ?? "",
     categoria: inicial?.categoria ?? "panaderia_pasteleria",
     precioHabitual: inicial?.precioHabitual ?? "",
     precioFinal: inicial?.precioFinal ?? "",
+    precioUnitario: inicial?.precioUnitario ?? "",
+    lleva: inicial?.lleva ?? "3",
+    paga: inicial?.paga ?? "2",
     cupos: inicial?.cupos ?? "5",
     desde: inicial?.desde ?? horaBogota(),
     hasta: inicial?.hasta ?? horaBogota(120),
@@ -69,8 +77,17 @@ export function FormularioPublicar({
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
     setF((v) => ({ ...v, [k]: e.target.value }));
 
-  const habitual = Number(f.precioHabitual) || 0;
-  const final = Number(f.precioFinal) || 0;
+  const llevaPaga = f.formato === "lleva_paga";
+  const nLleva = Math.trunc(Number(f.lleva)) || 0;
+  const nPaga = Math.trunc(Number(f.paga)) || 0;
+  const unitario = Math.trunc(Number(f.precioUnitario)) || 0;
+  const llevaPagaValido = nLleva >= 2 && nLleva <= 20 && nPaga >= 1 && nPaga < nLleva && unitario >= 100;
+  const calculado = llevaPagaValido ? preciosLlevaPaga(unitario, nLleva, nPaga) : null;
+  const habitual = llevaPaga ? (calculado?.precioHabitual ?? 0) : Number(f.precioHabitual) || 0;
+  const final = llevaPaga ? (calculado?.precioFinal ?? 0) : Number(f.precioFinal) || 0;
+  const unidad = llevaPaga
+    ? { varias: "paquetes", reservada: "paquete reservado", reservadas: "paquetes reservados" }
+    : { varias: "unidades", reservada: "unidad reservada", reservadas: "unidades reservadas" };
   const pct = habitual > 0 && final > 0 && final < habitual ? descuento(final, habitual) : null;
 
   const paso2Listo = f.titulo.trim().length >= 3 && f.contenido.trim().length >= 5 && pct !== null && Number(f.cupos) >= minimoCupos;
@@ -110,9 +127,11 @@ export function FormularioPublicar({
       <input type="hidden" name="destino" value={destino} />
       {edicion && <input type="hidden" name="ofertaId" value={edicion.ofertaId} />}
       <input type="hidden" name="foto" value={foto?.ruta ?? ""} />
-      {Object.entries(f).map(([k, v]) => (
-        <input key={k} type="hidden" name={k} value={v} />
-      ))}
+      {Object.entries(f)
+        .filter(([k]) => (llevaPaga ? !["precioHabitual", "precioFinal"].includes(k) : !["precioUnitario", "lleva", "paga"].includes(k)))
+        .map(([k, v]) => (
+          <input key={k} type="hidden" name={k} value={v} />
+        ))}
 
       <ol className="grid grid-cols-3 gap-2 text-center text-xs font-bold" aria-label="Pasos">
         {pasos.map((p, i) => (
@@ -168,7 +187,7 @@ export function FormularioPublicar({
       {paso === 2 && (
         <section className="flex flex-col gap-4">
           <h2 className="font-display text-xl font-extrabold text-primary">Tu promoción o combo</h2>
-          <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Etiqueta de la oferta">
+          <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Etiqueta de la oferta">
             {FORMATOS.map((v) => (
               <button
                 key={v}
@@ -191,6 +210,10 @@ export function FormularioPublicar({
             <textarea value={f.contenido} onChange={set("contenido")} maxLength={500} rows={3} placeholder="Ej.: 6 panes de bono medianos horneados hoy" className={campo} />
           </label>
           <label className={etiqueta}>
+            Tamaño o gramaje (opcional)
+            <input value={f.tamano} onChange={set("tamano")} maxLength={40} placeholder="Ej.: 500 g, personal, familiar 8 porciones" className={campo} />
+          </label>
+          <label className={etiqueta}>
             Categoría
             <select value={f.categoria} onChange={set("categoria")} className={campo}>
               {Object.entries(CATEGORIA_LABEL).map(([v, t]) => (
@@ -200,6 +223,29 @@ export function FormularioPublicar({
               ))}
             </select>
           </label>
+          {llevaPaga ? (
+            <>
+              <div className="grid grid-cols-3 gap-3">
+                <label className={etiqueta}>
+                  Lleva
+                  <input value={f.lleva} onChange={set("lleva")} inputMode="numeric" type="number" min={2} max={20} className={campo} />
+                </label>
+                <label className={etiqueta}>
+                  Paga
+                  <input value={f.paga} onChange={set("paga")} inputMode="numeric" type="number" min={1} max={19} className={campo} />
+                </label>
+                <label className={etiqueta}>
+                  Precio por unidad
+                  <input value={f.precioUnitario} onChange={set("precioUnitario")} inputMode="numeric" type="number" min={0} placeholder="3000" className={campo} />
+                </label>
+              </div>
+              <p className={`text-sm font-semibold ${calculado ? "text-primary" : "text-muted-foreground"}`} aria-live="polite" data-testid="calculo-lleva-paga">
+                {calculado
+                  ? `${etiquetaFormato("lleva_paga", nLleva, nPaga)}: el paquete vale ${formatCOP(calculado.precioHabitual)} y se paga ${formatCOP(calculado.precioFinal)}.`
+                  : "«Paga» debe ser menor que «lleva» (máximo 20) y el precio por unidad al menos $ 100."}
+              </p>
+            </>
+          ) : (
           <div className="grid grid-cols-2 gap-3">
             <label className={etiqueta}>
               Precio habitual
@@ -210,16 +256,21 @@ export function FormularioPublicar({
               <input value={f.precioFinal} onChange={set("precioFinal")} inputMode="numeric" type="number" min={0} placeholder="6000" className={campo} />
             </label>
           </div>
+          )}
           <p className={`text-sm font-semibold ${pct !== null ? "text-primary" : "text-muted-foreground"}`} aria-live="polite">
-            {pct !== null ? `Descuento: ${pct}% · el comprador ahorra ${formatCOP(habitual - final)}` : "El precio Salvori debe ser menor que el habitual."}
+            {pct !== null
+              ? `Descuento: ${pct}% · el comprador ahorra ${formatCOP(habitual - final)}${llevaPaga ? " por paquete" : ""}`
+              : llevaPaga
+                ? "Completa lleva, paga y el precio por unidad."
+                : "El precio Salvori debe ser menor que el habitual."}
           </p>
           <label className={etiqueta}>
-            Cupos disponibles
+            {llevaPaga ? "Paquetes disponibles" : "Unidades disponibles"}
             <input value={f.cupos} onChange={set("cupos")} inputMode="numeric" type="number" min={minimoCupos} max={200} className={campo} />
           </label>
           {edicion && edicion.reservados > 0 && (
             <p className="-mt-2 text-sm text-muted-foreground">
-              Ya hay {edicion.reservados} {edicion.reservados === 1 ? "cupo reservado" : "cupos reservados"}: no puedes dejar menos. Las reservas hechas
+              Ya hay {edicion.reservados} {edicion.reservados === 1 ? unidad.reservada : unidad.reservadas}: no puedes dejar menos. Las reservas hechas
               conservan su precio.
             </p>
           )}
@@ -265,7 +316,7 @@ export function FormularioPublicar({
                 <img src={foto.vista} alt="" className="size-full object-cover" />
               )}
               <span className="absolute left-3 top-3 rounded-full bg-primary px-2.5 py-0.5 text-xs font-bold uppercase tracking-wide text-primary-foreground">
-                {FORMATO_LABEL[f.formato]}
+                {etiquetaFormato(f.formato, nLleva, nPaga)}
               </span>
               {pct !== null && (
                 <span className="absolute right-3 top-3 rounded-full bg-accent px-2.5 py-0.5 font-display text-sm font-extrabold text-accent-foreground">
@@ -275,13 +326,14 @@ export function FormularioPublicar({
             </div>
             <div className="p-4">
               <p className="font-display text-lg font-bold text-primary">{f.titulo || "Título"}</p>
+              {f.tamano.trim() && <p className="text-sm font-semibold">{f.tamano.trim()}</p>}
               <p className="text-sm text-muted-foreground">{negocioNombre}</p>
               <p className="mt-2">
                 <span className="font-display text-xl font-extrabold">{formatCOP(final)}</span>{" "}
                 <span className="text-sm text-muted-foreground line-through">{formatCOP(habitual)}</span>
               </p>
               <p className="mt-1 flex items-center gap-1 text-sm text-muted-foreground">
-                <Clock className="size-4" aria-hidden /> Recoge de {f.desde} a {f.hasta} · Quedan {Math.max(0, Number(f.cupos) - (edicion?.reservados ?? 0))}
+                <Clock className="size-4" aria-hidden /> Recoge de {f.desde} a {f.hasta} · {Math.max(0, Number(f.cupos) - (edicion?.reservados ?? 0))} {unidad.varias} disponibles
               </p>
             </div>
           </div>

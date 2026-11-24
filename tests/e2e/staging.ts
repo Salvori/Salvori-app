@@ -20,6 +20,14 @@ export const hayStaging = Boolean(
 
 export const hayAdmin = hayStaging && Boolean(USUARIOS.admin.password);
 
+export const SIN_MIGRACION_MARCA = "Falta aplicar la migración 20261123000100_oferta_y_marca en staging (la aplica la sesión de gestión).";
+
+/** true si staging aún no tiene las columnas de la migración de oferta y marca (el catálogo las pide). */
+export async function faltaMigracionMarca(): Promise<boolean> {
+  const { error } = await admin().from("ofertas").select("tamano, lleva, paga, negocio:negocios(logo_url)").limit(1);
+  return Boolean(error);
+}
+
 const sinSesion = { auth: { persistSession: false, autoRefreshToken: false } };
 export const admin = (): SupabaseClient => createClient(url, serviceKey, sinSesion);
 
@@ -114,6 +122,8 @@ export async function borrarNegocio(negocioId: string) {
   await db.from("negocios").delete().eq("id", negocioId);
   const { data: fotos } = await db.storage.from("ofertas").list(negocioId);
   if (fotos?.length) await db.storage.from("ofertas").remove(fotos.map((f) => `${negocioId}/${f.name}`));
+  const { data: logos } = await db.storage.from("ofertas").list(`negocios/${negocioId}`);
+  if (logos?.length) await db.storage.from("ofertas").remove(logos.map((f) => `negocios/${negocioId}/${f.name}`));
 }
 
 /** Los 3 pasos de publicar (foto → promoción y precio → horario). Sirve en /negocio/publicar y /admin/publicar. */
@@ -139,7 +149,7 @@ export async function publicarEnTresPasos(pagina: Page, titulo: string) {
   await pagina.getByLabel("Precio habitual").fill("12000");
   await pagina.getByLabel("Precio Salvori").fill("8000");
   await expect(pagina.getByText("Descuento: 33%")).toBeVisible();
-  await pagina.getByLabel("Cupos disponibles").fill("4");
+  await pagina.getByLabel("Unidades disponibles").fill("4");
   await pagina.getByRole("button", { name: "Siguiente" }).click();
 
   await expect(pagina.getByText(/elaborado/i)).toHaveCount(0);

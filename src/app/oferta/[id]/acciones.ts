@@ -1,8 +1,10 @@
 "use server";
 
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { mensajeAmigable } from "@/lib/errores";
+import { COOKIE_ORIGEN, origenValido } from "@/lib/origen";
 import { createClient } from "@/lib/supabase/server";
 import { usuarioActual } from "@/lib/sesion";
 
@@ -24,7 +26,10 @@ export async function reservarOferta(_previo: EstadoReserva, form: FormData): Pr
   });
   if (!datos.success) return { error: datos.error.issues[0]?.message ?? "Revisa los datos de la reserva." };
 
-  const { ofertaId, cantidad, observaciones, origen } = datos.data;
+  const { ofertaId, cantidad, observaciones } = datos.data;
+  // Origen «negocio:<slug>» si llegó por la ficha del negocio en los últimos 7 días.
+  const guardado = origenValido((await cookies()).get(COOKIE_ORIGEN)?.value);
+  const origen = guardado !== "directo" ? guardado : datos.data.origen;
   if (!(await usuarioActual())) redirect(`/entrar?next=${encodeURIComponent(`/oferta/${ofertaId}`)}`);
 
   const supabase = await createClient();
@@ -36,5 +41,6 @@ export async function reservarOferta(_previo: EstadoReserva, form: FormData): Pr
   });
   if (error) return { error: mensajeAmigable(error) };
 
+  if (guardado !== "directo") (await cookies()).delete(COOKIE_ORIGEN);
   redirect("/mis-reservas?nueva=1");
 }

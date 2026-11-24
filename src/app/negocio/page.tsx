@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { fechaBogota, instanteActual } from "@/lib/tiempo";
 import { AvisosNegocio } from "./avisos";
 import { contextoNegocio } from "./contexto";
+import { MiLocal, type DatosLocal } from "./mi-local";
 import { NavegacionNegocio } from "./navegacion";
 import { TarjetaReserva, type ReservaBandeja } from "./tarjeta-reserva";
 
@@ -16,7 +17,10 @@ async function Bandeja({ searchParams }: { searchParams: Promise<{ n?: string }>
   const { n } = await searchParams;
   const { negocio, negocios } = await contextoNegocio(n);
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("reservas_negocio", { negocio_id: negocio.id });
+  const [{ data, error }, { data: local }] = await Promise.all([
+    supabase.rpc("reservas_negocio", { negocio_id: negocio.id }),
+    supabase.from("negocios").select("id, nombre, slug, direccion, lat, lng, logo_url").eq("id", negocio.id).maybeSingle(),
+  ]);
   if (error) throw new Error("No pudimos cargar las reservas.");
 
   // Reservas de hoy (hora de Colombia), nuevas arriba.
@@ -60,6 +64,7 @@ async function Bandeja({ searchParams }: { searchParams: Promise<{ n?: string }>
           ))}
         </ul>
       )}
+      {local && <MiLocal local={local as DatosLocal} />}
     </>
   );
 }
