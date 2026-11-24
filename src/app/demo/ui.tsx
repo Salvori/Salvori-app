@@ -32,16 +32,18 @@ export function BarraDemo() {
   const enNegocio = ruta.startsWith("/demo/negocio");
   return (
     <div className="bg-primary text-primary-foreground">
-      <div className="mx-auto flex max-w-xl items-center justify-between gap-2 px-4 py-1.5 text-xs">
-        <span className="font-semibold">Modo demo · datos de muestra</span>
-        <div className="flex items-center gap-3">
-          <Link href={enNegocio ? "/demo" : "/demo/negocio"} className="font-bold underline underline-offset-2">
+      <div className="mx-auto flex max-w-xl items-center justify-between gap-2 px-4 text-xs">
+        <span className="font-semibold">
+          Modo demo<span className="max-sm:hidden"> · datos de muestra</span>
+        </span>
+        <div className="flex items-center gap-3 whitespace-nowrap">
+          <Link href={enNegocio ? "/demo" : "/demo/negocio"} className="py-3 font-bold underline underline-offset-2">
             {enNegocio ? "Ver como cliente" : "Ver como negocio"}
           </Link>
           <button
             type="button"
             onClick={() => confirm("¿Reiniciar la demo con los datos de muestra?") && demo.reiniciar()}
-            className="flex items-center gap-1 opacity-90"
+            className="flex items-center gap-1 py-3 opacity-90"
             aria-label="Reiniciar la demo"
           >
             <RotateCcw className="size-3.5" aria-hidden /> Reiniciar

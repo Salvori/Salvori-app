@@ -39,7 +39,7 @@ export function NavegacionNegocio({
                 </option>
               ))}
             </select>
-            <button type="submit" className="ml-2 font-semibold text-primary underline underline-offset-4">
+            <button type="submit" className="ml-1 px-1 py-2 font-semibold text-primary underline underline-offset-4">
               Cambiar
             </button>
           </form>

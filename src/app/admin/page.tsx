@@ -45,14 +45,14 @@ export default async function AdminNegocios() {
                 {CATEGORIA_LABEL[n.categoria] ?? n.categoria} · {n.direccion || "Sin dirección"}
                 {n.telefono_whatsapp ? "" : " · Sin WhatsApp"}
               </p>
-              <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-sm font-semibold text-primary">
-                <Link href={`/admin/negocios/${n.id}`} className="underline underline-offset-4">
+              <div className="mt-2 flex flex-wrap gap-x-5 text-sm font-semibold text-primary">
+                <Link href={`/admin/negocios/${n.id}`} className="inline-block py-2 underline underline-offset-4">
                   Editar y usuarios
                 </Link>
-                <Link href={`/admin/publicar?n=${n.slug}`} className="underline underline-offset-4">
+                <Link href={`/admin/publicar?n=${n.slug}`} className="inline-block py-2 underline underline-offset-4">
                   Publicar por él
                 </Link>
-                <Link href={`/admin/reservas?n=${n.slug}`} className="underline underline-offset-4">
+                <Link href={`/admin/reservas?n=${n.slug}`} className="inline-block py-2 underline underline-offset-4">
                   Reservas
                 </Link>
               </div>

@@ -138,7 +138,7 @@ export function ExploradorOfertas({
                 type="button"
                 onClick={() => setVista(v)}
                 aria-pressed={vista === v}
-                className={`inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-semibold transition-colors ${
+                className={`inline-flex items-center gap-1.5 rounded-full px-4 py-2.5 text-sm font-semibold transition-colors ${
                   vista === v ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
                 }`}
               >
@@ -154,7 +154,7 @@ export function ExploradorOfertas({
                 type="button"
                 onClick={() => setRadio(r)}
                 aria-pressed={radio === r}
-                className={`rounded-full px-4 py-1.5 text-sm font-semibold transition-colors ${
+                className={`rounded-full px-4 py-2.5 text-sm font-semibold transition-colors ${
                   radio === r ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:text-foreground"
                 }`}
               >
