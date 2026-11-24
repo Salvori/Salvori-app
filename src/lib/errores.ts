@@ -2,7 +2,7 @@
 type ErrorRpc = { message?: string; code?: string } | null | undefined;
 
 const REGLAS: Array<[RegExp, string]> = [
-  [/suficientes cupos/i, "Ya no quedan cupos suficientes. Prueba con menos unidades o elige otra oferta."],
+  [/suficientes (cupos|unidades)/i, "Ya no quedan unidades suficientes. Prueba con menos unidades o elige otra oferta."],
   [/fuera del horario/i, "Esta oferta ya no está en horario de recogida."],
   [/no está activa|no está disponible/i, "Esta oferta ya no está disponible."],
   [/inicia sesión/i, "Entra con tu correo para continuar."],

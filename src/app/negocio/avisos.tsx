@@ -2,12 +2,12 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { BellRing } from "lucide-react";
+import { BellRing, Check, Mail, MessageCircle, MonitorSmartphone } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 // Escucha los eventos del negocio (Realtime + RLS de eventos) y avisa de reservas nuevas:
 // sonido, vibración, título de la pestaña y notificación del navegador si se permitió.
-export function AvisosNegocio({ negocioId, pendientes }: { negocioId: string; pendientes: number }) {
+export function AvisosNegocio({ negocioId, pendientes, correos }: { negocioId: string; pendientes: number; correos: string[] }) {
   const router = useRouter();
   const audio = useRef<AudioContext | null>(null);
   const [sonidoListo, setSonidoListo] = useState(false);
@@ -83,15 +83,40 @@ export function AvisosNegocio({ negocioId, pendientes }: { negocioId: string; pe
 
   return (
     <div className="mb-4 space-y-2">
-      {!sonidoListo && (
-        <button
-          type="button"
-          onClick={activarSonido}
-          className="flex w-full items-center justify-center gap-2 rounded-full border border-primary bg-card py-2.5 font-bold text-primary"
-        >
-          <BellRing className="size-4" aria-hidden /> Activar aviso sonoro de reservas
-        </button>
-      )}
+      <section className="rounded-2xl bg-card p-4 shadow-card" aria-labelledby="titulo-canales">
+        <h2 id="titulo-canales" className="font-display font-bold text-primary">
+          Cómo te llegan las reservas
+        </h2>
+        <ul className="mt-2 space-y-1.5 text-sm">
+          <li className="flex gap-2">
+            <MonitorSmartphone className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
+            <span>Tono y aviso en esta pantalla (deja el panel abierto).</span>
+          </li>
+          <li className="flex gap-2">
+            <Mail className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
+            <span>
+              Correo a {correos.length ? <strong className="break-all">{correos.join(", ")}</strong> : "los usuarios del negocio"}.
+            </span>
+          </li>
+          <li className="flex gap-2">
+            <MessageCircle className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
+            <span>WhatsApp cuando el cliente pulse el botón «Enviar mi pedido por WhatsApp».</span>
+          </li>
+        </ul>
+        {sonidoListo ? (
+          <p className="mt-3 flex items-center justify-center gap-2 rounded-full bg-secondary py-2.5 text-sm font-bold text-secondary-foreground" role="status">
+            <Check className="size-4" aria-hidden /> Sonido y avisos activados
+          </p>
+        ) : (
+          <button
+            type="button"
+            onClick={activarSonido}
+            className="mt-3 flex w-full items-center justify-center gap-2 rounded-full border border-primary bg-card py-2.5 font-bold text-primary"
+          >
+            <BellRing className="size-4" aria-hidden /> Activar sonido y avisos del navegador
+          </button>
+        )}
+      </section>
       {aviso && (
         <p className="flex items-center justify-between gap-2 rounded-2xl bg-accent px-4 py-3 font-bold text-accent-foreground" role="alert">
           {aviso}

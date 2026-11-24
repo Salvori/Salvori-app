@@ -1,14 +1,20 @@
 import type { Metadata } from "next";
 import Image from "next/image";
+import Link from "next/link";
+import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { Suspense } from "react";
-import { ChefHat, Clock, MapPin, Star, Store } from "lucide-react";
+import { ChefHat, Clock, Mail, MapPin, MessageCircle, Star, Store } from "lucide-react";
 import { Cabecera } from "@/components/cabecera";
+import { LogoNegocio } from "@/components/logo-negocio";
+import { etiquetaFormato } from "@/lib/esquema-oferta";
+import { COOKIE_ORIGEN, origenValido } from "@/lib/origen";
 import { formatCOP, formatHora } from "@/lib/formato";
-import { CATEGORIA_LABEL, descuento, textoVentana, urlFoto } from "@/lib/ofertas";
+import { CATEGORIA_LABEL, descuento, textoDisponibles, textoVentana, urlFoto } from "@/lib/ofertas";
 import { usuarioActual } from "@/lib/sesion";
 import { clientePublico } from "@/lib/supabase/publico";
+import { telefonoWhatsApp } from "@/lib/texto";
 import { FormularioReserva } from "./formulario-reserva";
 
 export const metadata: Metadata = { title: "Oferta" };
@@ -30,16 +36,17 @@ async function Ficha({ params }: { params: Promise<{ id: string }> }) {
   const { data: o } = await db
     .from("ofertas")
     .select(
-      "id, tipo, titulo, contenido, categoria, foto_url, precio_habitual, precio_final, cupos_disponibles, recogida_desde, recogida_hasta, tiempo_preparacion_min, elaborado_en, estado, negocio:negocios(id, nombre, direccion, horario)",
+      "id, tipo, formato, tamano, lleva, paga, titulo, contenido, categoria, foto_url, precio_habitual, precio_final, cupos_disponibles, recogida_desde, recogida_hasta, tiempo_preparacion_min, elaborado_en, estado, negocio:negocios(id, nombre, slug, logo_url, direccion, horario, telefono_whatsapp)",
     )
     .eq("id", id)
     .maybeSingle();
   if (!o || !o.negocio) notFound();
 
+  const origen = origenValido((await cookies()).get(COOKIE_ORIGEN)?.value);
   const [usuario, calificaciones] = await Promise.all([
     usuarioActual(),
     db.rpc("calificaciones_negocio", { negocio_id: o.negocio.id }).then((r) => r.data ?? []),
-    db.rpc("registrar_vista", { oferta_id: o.id, origen: "directo" }).then(() => null),
+    db.rpc("registrar_vista", { oferta_id: o.id, origen }).then(() => null),
   ]);
 
   const foto = urlFoto(o.foto_url);
@@ -53,6 +60,9 @@ async function Ficha({ params }: { params: Promise<{ id: string }> }) {
     <article>
       <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-muted md:aspect-[16/9]">
         {foto && <Image src={foto} alt={o.titulo} fill priority sizes="(min-width: 768px) 720px, 100vw" className="object-cover" />}
+        <span className="absolute left-3 top-3 rounded-full bg-primary px-3 py-1 text-xs font-bold uppercase tracking-wide text-primary-foreground">
+          {etiquetaFormato(o.formato, o.lleva, o.paga)}
+        </span>
         <span className="absolute right-3 top-3 rounded-full bg-accent px-3 py-1 font-display font-extrabold text-accent-foreground">
           -{descuento(o.precio_final, o.precio_habitual)}%
         </span>
@@ -62,9 +72,12 @@ async function Ficha({ params }: { params: Promise<{ id: string }> }) {
         {CATEGORIA_LABEL[o.categoria] ?? o.categoria}
       </p>
       <h1 className="mt-1 font-display text-3xl font-extrabold leading-tight text-primary">{o.titulo}</h1>
-      <p className="mt-1 flex items-center gap-1.5 text-muted-foreground">
-        <Store className="size-4" aria-hidden />
-        {o.negocio.nombre}
+      {o.tamano && <p className="mt-1 font-semibold text-foreground/80">Tamaño: {o.tamano}</p>}
+      <p className="mt-3 flex flex-wrap items-center gap-2 text-muted-foreground">
+        <Link href={`/n/${o.negocio.slug}`} className="flex items-center gap-2 font-semibold text-foreground hover:text-primary">
+          <LogoNegocio nombre={o.negocio.nombre} logo={o.negocio.logo_url} tamano="md" />
+          {o.negocio.nombre}
+        </Link>
         {promedio !== null ? (
           <span className="ml-2 flex items-center gap-1 font-semibold text-foreground">
             <Star className="size-4 fill-accent text-accent" aria-hidden />
@@ -80,11 +93,16 @@ async function Ficha({ params }: { params: Promise<{ id: string }> }) {
         <span className="font-display text-3xl font-extrabold">{formatCOP(o.precio_final)}</span>
         <span className="text-muted-foreground line-through">{formatCOP(o.precio_habitual)}</span>
       </div>
-      <p className="mt-1 font-semibold text-mandarina-texto">{agotada ? "Agotada" : `Quedan ${o.cupos_disponibles}`}</p>
+      <p className="mt-1 font-semibold text-mandarina-texto">{agotada ? "Agotada" : textoDisponibles(o.cupos_disponibles, o.formato)}</p>
 
       <section className="mt-5 rounded-2xl bg-card p-5 shadow-card">
         <h2 className="font-display text-lg font-bold text-primary">Qué recibes</h2>
         <p className="mt-1 whitespace-pre-line">{o.contenido}</p>
+        {o.formato === "lleva_paga" && o.lleva && o.paga && (
+          <p className="mt-2 rounded-xl bg-secondary px-3 py-2 text-sm font-semibold text-secondary-foreground">
+            Cada paquete trae {o.lleva} unidades y pagas {o.paga}: {formatCOP(Math.round(o.precio_final / o.paga))} por unidad.
+          </p>
+        )}
         <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
           <li className="flex items-center gap-2">
             <Clock className="size-4 shrink-0" aria-hidden />
@@ -113,6 +131,11 @@ async function Ficha({ params }: { params: Promise<{ id: string }> }) {
               Horario: {horario}
             </li>
           )}
+          <li>
+            <Link href={`/n/${o.negocio.slug}`} className="font-semibold text-primary underline underline-offset-4">
+              Ver más de {o.negocio.nombre}
+            </Link>
+          </li>
         </ul>
       </section>
 
@@ -125,8 +148,23 @@ async function Ficha({ params }: { params: Promise<{ id: string }> }) {
             precioFinal={o.precio_final}
             precioHabitual={o.precio_habitual}
             cupos={o.cupos_disponibles}
+            porPaquetes={o.formato === "lleva_paga"}
             conSesion={Boolean(usuario)}
           />
+        )}
+        {!agotada && (
+          <ul className="mt-4 space-y-1.5 border-t pt-4 text-sm text-muted-foreground" aria-label="Cómo te avisamos">
+            {telefonoWhatsApp(o.negocio.telefono_whatsapp) && (
+              <li className="flex items-center gap-2">
+                <MessageCircle className="size-4 shrink-0 text-primary" aria-hidden />
+                Reserva aquí y avísale al negocio por WhatsApp.
+              </li>
+            )}
+            <li className="flex items-center gap-2">
+              <Mail className="size-4 shrink-0 text-primary" aria-hidden />
+              Te avisamos por correo cuando el negocio confirme.
+            </li>
+          </ul>
         )}
       </section>
 

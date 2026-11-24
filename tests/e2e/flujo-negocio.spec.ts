@@ -1,9 +1,12 @@
 import { expect, test } from "@playwright/test";
 import { randomUUID } from "node:crypto";
-import { USUARIOS, admin, cookiesDeSesion, crearOfertaTemporal, hayStaging, publicarEnTresPasos } from "./staging";
+import { USUARIOS, admin, cookiesDeSesion, crearOfertaTemporal, hayStaging, publicarEnTresPasos, SIN_MIGRACION_MARCA, faltaMigracionMarca } from "./staging";
 
 test.describe("demo: negocio publica, comprador reserva, negocio confirma y entrega", () => {
   test.skip(!hayStaging, "Necesita .env.local de staging y los usuarios de prueba.");
+  test.beforeAll(async () => {
+    test.skip(await faltaMigracionMarca(), SIN_MIGRACION_MARCA);
+  });
   test.describe.configure({ mode: "serial", timeout: 120_000 });
 
   let datos: Awaited<ReturnType<typeof crearOfertaTemporal>>;
@@ -56,11 +59,11 @@ test.describe("demo: negocio publica, comprador reserva, negocio confirma y entr
     // --- Edita la oferta: cambia los cupos (aún sin reservas) ---
     await fila.getByRole("link", { name: "Editar" }).click();
     await negocio.getByRole("button", { name: "Siguiente" }).click();
-    await negocio.getByLabel("Cupos disponibles").fill("6");
+    await negocio.getByLabel("Unidades disponibles").fill("6");
     await negocio.getByRole("button", { name: "Siguiente" }).click();
     await negocio.getByRole("button", { name: "Guardar cambios" }).click();
     await expect(negocio.getByText("Cambios guardados.")).toBeVisible({ timeout: 20_000 });
-    await expect(fila).toContainText("6/6 cupos");
+    await expect(fila).toContainText("6/6 unidades");
 
     // --- Duplicar abre el formulario con los datos de la oferta ---
     await fila.getByRole("link", { name: "Duplicar" }).click();
@@ -71,7 +74,7 @@ test.describe("demo: negocio publica, comprador reserva, negocio confirma y entr
     await copia.getByRole("button", { name: "Siguiente" }).click();
     await expect(copia.getByLabel("Título")).toHaveValue(titulo);
     await expect(copia.getByLabel("Precio Salvori")).toHaveValue("8000");
-    await expect(copia.getByLabel("Cupos disponibles")).toHaveValue("6");
+    await expect(copia.getByLabel("Unidades disponibles")).toHaveValue("6");
 
     // El negocio deja abierta su bandeja.
     await negocio.goto(`/negocio?n=${slug}`);

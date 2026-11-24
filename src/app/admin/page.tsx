@@ -17,10 +17,15 @@ export default async function AdminNegocios() {
     .order("nombre");
   if (error) throw new Error("No pudimos cargar los negocios.");
   const negocios = data ?? [];
+  const { count: interesados } = await supabase.from("interesados").select("id", { count: "exact", head: true });
 
   return (
     <>
       <NavegacionAdmin actual="/admin" />
+      <p className="mb-4 rounded-2xl bg-card p-4 shadow-card">
+        <span className="font-display text-2xl font-extrabold text-primary">{interesados ?? "—"}</span>{" "}
+        <span className="text-muted-foreground">interesados en «Avísame cuando haya combos cerca»</span>
+      </p>
       <Link href="/admin/negocios/nuevo" className="mb-4 block rounded-full bg-accent py-3 text-center font-display text-lg font-extrabold text-accent-foreground">
         Nuevo negocio
       </Link>

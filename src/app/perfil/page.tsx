@@ -3,6 +3,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { Cabecera } from "@/components/cabecera";
+import { FormularioInteresados } from "@/components/formulario-interesados";
+import { borrarMiInscripcion } from "@/app/interesados/acciones";
 import { direccionGuardada } from "@/lib/direccion";
 import { formatCOP } from "@/lib/formato";
 import { rutaSegura, usuarioActual } from "@/lib/sesion";
@@ -20,11 +22,13 @@ async function Perfil({ searchParams }: { searchParams: Promise<{ primera?: stri
   const siguiente = next ? rutaSegura(next) : undefined;
 
   const supabase = await createClient();
-  const [{ data: datos }, { data: ahorro }, { count: compras }, direccion] = await Promise.all([
+  const [{ data: datos }, { data: ahorro }, { count: compras }, direccion, { data: interes }] = await Promise.all([
     supabase.auth.getUser(),
     supabase.rpc("ahorro_comprador", { uid: usuario.id }),
     supabase.from("reservas").select("id", { count: "exact", head: true }).eq("comprador_id", usuario.id).eq("estado", "entregada"),
     direccionGuardada(usuario.id),
+    // Si la tabla aún no existe en este entorno, se muestra el formulario vacío.
+    supabase.from("interesados").select("correo, radio_km, origen_ubicacion").eq("user_id", usuario.id).maybeSingle(),
   ]);
   const nombre = (datos.user?.user_metadata?.nombre as string | undefined) ?? "";
 
@@ -62,6 +66,28 @@ async function Perfil({ searchParams }: { searchParams: Promise<{ primera?: stri
           <form action={borrarDireccion} className="mt-3 text-center">
             <button className="text-sm text-muted-foreground underline underline-offset-4">Borrar mi dirección</button>
           </form>
+        )}
+      </section>
+
+      <section className="mt-6 rounded-2xl bg-card p-5 shadow-card" aria-labelledby="titulo-avisame">
+        <h2 id="titulo-avisame" className="mb-1 font-display text-lg font-bold text-primary">
+          Avísame cuando haya combos cerca
+        </h2>
+        {interes ? (
+          <>
+            <p className="text-sm" role="status">
+              Te avisamos a <strong className="break-all">{interes.correo}</strong> de combos a menos de {interes.radio_km} km
+              {interes.origen_ubicacion === "direccion" ? " de tu dirección" : " del punto que elegiste"}. Máximo un correo cada 6 horas.
+            </p>
+            <form action={borrarMiInscripcion} className="mt-3">
+              <button className="text-sm text-muted-foreground underline underline-offset-4">Dejar de recibir avisos</button>
+            </form>
+          </>
+        ) : (
+          <>
+            <p className="mb-4 text-sm text-muted-foreground">Te escribimos cuando un negocio publique un combo cerca de ti.</p>
+            <FormularioInteresados correoInicial={usuario.email ?? ""} direccion={direccion} />
+          </>
         )}
       </section>
     </>

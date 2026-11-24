@@ -2,11 +2,14 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { z } from "zod";
+import { avisarInteresados } from "@/lib/avisos-interesados";
 import { esquemaOferta, ventanaDeHoy } from "@/lib/esquema-oferta";
 import { mensajeAmigable } from "@/lib/errores";
+import { mensajePlan } from "@/lib/planes";
 import { createClient } from "@/lib/supabase/server";
-import { usuarioActual } from "@/lib/sesion";
+import { origenActual, usuarioActual } from "@/lib/sesion";
 
 export type EstadoPublicar = { error: string } | null;
 
@@ -28,10 +31,13 @@ export async function publicarOferta(_p: EstadoPublicar, form: FormData): Promis
   const { data: negocio } = await supabase.from("negocios").select("es_prueba").eq("id", d.negocioId).maybeSingle();
   if (!negocio) return { error: "No tienes acceso a este negocio." };
 
-  const { error } = await supabase.from("ofertas").insert({
+  const { data: nueva, error } = await supabase.from("ofertas").insert({
     negocio_id: d.negocioId,
     tipo: "comercial", // carril solo comercial (decisión del 14 nov)
     formato: d.formato,
+    tamano: d.tamano,
+    lleva: d.lleva,
+    paga: d.paga,
     titulo: d.titulo,
     contenido: d.contenido,
     categoria: d.categoria,
@@ -46,8 +52,15 @@ export async function publicarOferta(_p: EstadoPublicar, form: FormData): Promis
     estado: "activa",
     publicada_por: usuario.id,
     es_prueba: negocio.es_prueba,
-  });
-  if (error) return { error: "No pudimos publicar la oferta. Revisa los datos e intenta de nuevo." };
+  }).select("id").single();
+  // Límite del plan o mensualidad vencida: el disparador de la base trae el motivo en español.
+  if (error) return { error: mensajePlan(error) ?? "No pudimos publicar la oferta. Revisa los datos e intenta de nuevo." };
+
+  // Correo a los interesados cercanos, después de responder (con tope y máximo uno cada 6 horas).
+  if (nueva?.id) {
+    const origen = await origenActual();
+    after(() => avisarInteresados([nueva.id], origen));
+  }
 
   const base = d.destino === "admin" ? "/admin/publicar" : "/negocio/ofertas";
   redirect(`${base}?n=${encodeURIComponent(d.slug)}&publicada=1`);
@@ -87,10 +100,14 @@ export async function editarOferta(_p: EstadoPublicar, form: FormData): Promise<
     p_recogida_hasta: ventana.hasta,
     // La función acepta null (sin tiempo de preparación); el generador de tipos no lo refleja.
     p_tiempo_preparacion_min: (d.preparacion ?? null) as number,
+    // Igual: null quita el tamaño o el «lleva/paga».
+    p_tamano: d.tamano as string,
+    p_lleva: d.lleva as number,
+    p_paga: d.paga as number,
   });
   if (error) {
-    const reservados = /Ya hay (\d+) cupos reservados/.exec(error.message);
-    if (reservados) return { error: `Ya hay ${reservados[1]} cupos reservados: la oferta no puede quedar con menos.` };
+    const reservados = /Ya hay (\d+) (?:cupos|unidades) reservad/.exec(error.message);
+    if (reservados) return { error: `Ya hay ${reservados[1]} unidades reservadas: la oferta no puede quedar con menos.` };
     if (/solo se editan ofertas vigentes/i.test(error.message)) return { error: "Esta oferta ya cerró: duplícala para publicarla de nuevo." };
     if (/hora de fin ya pasó/i.test(error.message)) return { error: "La hora de fin ya pasó. Elige una ventana de recogida futura." };
     return { error: mensajeAmigable(error) };

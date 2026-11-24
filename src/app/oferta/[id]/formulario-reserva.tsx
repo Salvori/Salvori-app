@@ -11,10 +11,12 @@ type Props = {
   precioFinal: number;
   precioHabitual: number;
   cupos: number;
+  /** «Lleva N, paga M»: se reserva por paquetes. */
+  porPaquetes?: boolean;
   conSesion: boolean;
 };
 
-export function FormularioReserva({ ofertaId, precioFinal, precioHabitual, cupos, conSesion }: Props) {
+export function FormularioReserva({ ofertaId, precioFinal, precioHabitual, cupos, porPaquetes = false, conSesion }: Props) {
   const [estado, accion, enviando] = useActionState<EstadoReserva, FormData>(reservarOferta, null);
   const [cantidad, setCantidad] = useState(1);
   const [origen, setOrigen] = useState("directo");
@@ -45,11 +47,11 @@ export function FormularioReserva({ ofertaId, precioFinal, precioHabitual, cupos
       <input type="hidden" name="cantidad" value={cantidad} />
       <input type="hidden" name="origen" value={origen} />
       <div className="flex items-center justify-between">
-        <span className="font-semibold">Cantidad</span>
+        <span className="font-semibold">{porPaquetes ? "Paquetes" : "Unidades"}</span>
         <div className="flex items-center gap-3">
           <button
             type="button"
-            aria-label="Quitar una unidad"
+            aria-label={porPaquetes ? "Quitar un paquete" : "Quitar una unidad"}
             onClick={() => setCantidad((c) => Math.max(1, c - 1))}
             disabled={cantidad <= 1}
             className="grid size-10 place-items-center rounded-full border bg-card disabled:opacity-40"
@@ -61,7 +63,7 @@ export function FormularioReserva({ ofertaId, precioFinal, precioHabitual, cupos
           </span>
           <button
             type="button"
-            aria-label="Agregar una unidad"
+            aria-label={porPaquetes ? "Agregar un paquete" : "Agregar una unidad"}
             onClick={() => setCantidad((c) => Math.min(maximo, c + 1))}
             disabled={cantidad >= maximo}
             className="grid size-10 place-items-center rounded-full border bg-card disabled:opacity-40"

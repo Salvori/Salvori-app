@@ -131,6 +131,51 @@ export type Database = {
           },
         ]
       }
+      interesados: {
+        Row: {
+          autoriza_datos: boolean
+          autorizado_en: string
+          correo: string
+          creado_en: string
+          id: string
+          lat: number
+          lng: number
+          origen_ubicacion: string
+          radio_km: number
+          token_baja: string
+          ultimo_envio: string | null
+          user_id: string | null
+        }
+        Insert: {
+          autoriza_datos: boolean
+          autorizado_en?: string
+          correo: string
+          creado_en?: string
+          id?: string
+          lat: number
+          lng: number
+          origen_ubicacion: string
+          radio_km: number
+          token_baja?: string
+          ultimo_envio?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          autoriza_datos?: boolean
+          autorizado_en?: string
+          correo?: string
+          creado_en?: string
+          id?: string
+          lat?: number
+          lng?: number
+          origen_ubicacion?: string
+          radio_km?: number
+          token_baja?: string
+          ultimo_envio?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       negocio_miembros: {
         Row: {
           creado_en: string
@@ -170,6 +215,7 @@ export type Database = {
           id: string
           lat: number
           lng: number
+          logo_url: string | null
           nombre: string
           slug: string
           telefono_whatsapp: string | null
@@ -186,6 +232,7 @@ export type Database = {
           id?: string
           lat: number
           lng: number
+          logo_url?: string | null
           nombre: string
           slug: string
           telefono_whatsapp?: string | null
@@ -202,6 +249,7 @@ export type Database = {
           id?: string
           lat?: number
           lng?: number
+          logo_url?: string | null
           nombre?: string
           slug?: string
           telefono_whatsapp?: string | null
@@ -269,12 +317,15 @@ export type Database = {
           formato: string
           foto_url: string
           id: string
+          lleva: number | null
           negocio_id: string
+          paga: number | null
           precio_final: number
           precio_habitual: number
           publicada_por: string | null
           recogida_desde: string
           recogida_hasta: string
+          tamano: string | null
           tiempo_preparacion_min: number | null
           tipo: Database["public"]["Enums"]["tipo_oferta"]
           titulo: string
@@ -291,12 +342,15 @@ export type Database = {
           formato?: string
           foto_url: string
           id?: string
+          lleva?: number | null
           negocio_id: string
+          paga?: number | null
           precio_final: number
           precio_habitual: number
           publicada_por?: string | null
           recogida_desde: string
           recogida_hasta: string
+          tamano?: string | null
           tiempo_preparacion_min?: number | null
           tipo: Database["public"]["Enums"]["tipo_oferta"]
           titulo: string
@@ -313,12 +367,15 @@ export type Database = {
           formato?: string
           foto_url?: string
           id?: string
+          lleva?: number | null
           negocio_id?: string
+          paga?: number | null
           precio_final?: number
           precio_habitual?: number
           publicada_por?: string | null
           recogida_desde?: string
           recogida_hasta?: string
+          tamano?: string | null
           tiempo_preparacion_min?: number | null
           tipo?: Database["public"]["Enums"]["tipo_oferta"]
           titulo?: string
@@ -332,6 +389,119 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      ofertas_avisadas: {
+        Row: {
+          enviados: number
+          oferta_id: string
+          procesada_en: string
+        }
+        Insert: {
+          enviados?: number
+          oferta_id: string
+          procesada_en?: string
+        }
+        Update: {
+          enviados?: number
+          oferta_id?: string
+          procesada_en?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ofertas_avisadas_oferta_id_fkey"
+            columns: ["oferta_id"]
+            isOneToOne: true
+            referencedRelation: "ofertas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pagos_mensualidad: {
+        Row: {
+          creado_en: string
+          id: string
+          metodo: string
+          negocio_id: string
+          nota: string
+          periodo_desde: string
+          periodo_hasta: string
+          plan_id: string
+          registrado_por: string | null
+          valor: number
+        }
+        Insert: {
+          creado_en?: string
+          id?: string
+          metodo: string
+          negocio_id: string
+          nota?: string
+          periodo_desde: string
+          periodo_hasta: string
+          plan_id: string
+          registrado_por?: string | null
+          valor: number
+        }
+        Update: {
+          creado_en?: string
+          id?: string
+          metodo?: string
+          negocio_id?: string
+          nota?: string
+          periodo_desde?: string
+          periodo_hasta?: string
+          plan_id?: string
+          registrado_por?: string | null
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pagos_mensualidad_negocio_id_fkey"
+            columns: ["negocio_id"]
+            isOneToOne: false
+            referencedRelation: "negocios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pagos_mensualidad_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "planes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      planes: {
+        Row: {
+          activo: boolean
+          creado_en: string
+          dias_prueba: number | null
+          id: string
+          max_ofertas_activas: number | null
+          nombre: string
+          orden: number
+          precio_mensual: number
+        }
+        Insert: {
+          activo?: boolean
+          creado_en?: string
+          dias_prueba?: number | null
+          id?: string
+          max_ofertas_activas?: number | null
+          nombre: string
+          orden?: number
+          precio_mensual?: number
+        }
+        Update: {
+          activo?: boolean
+          creado_en?: string
+          dias_prueba?: number | null
+          id?: string
+          max_ofertas_activas?: number | null
+          nombre?: string
+          orden?: number
+          precio_mensual?: number
+        }
+        Relationships: []
       }
       reservas: {
         Row: {
@@ -413,6 +583,48 @@ export type Database = {
           },
         ]
       }
+      suscripciones: {
+        Row: {
+          actualizado_en: string
+          estado: Database["public"]["Enums"]["estado_suscripcion"]
+          inicia_en: string
+          negocio_id: string
+          plan_id: string
+          vence_en: string
+        }
+        Insert: {
+          actualizado_en?: string
+          estado?: Database["public"]["Enums"]["estado_suscripcion"]
+          inicia_en?: string
+          negocio_id: string
+          plan_id: string
+          vence_en: string
+        }
+        Update: {
+          actualizado_en?: string
+          estado?: Database["public"]["Enums"]["estado_suscripcion"]
+          inicia_en?: string
+          negocio_id?: string
+          plan_id?: string
+          vence_en?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "suscripciones_negocio_id_fkey"
+            columns: ["negocio_id"]
+            isOneToOne: true
+            referencedRelation: "negocios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "suscripciones_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "planes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           id: string
@@ -455,7 +667,19 @@ export type Database = {
         }
         Returns: Json
       }
+      cambiar_logo_negocio: {
+        Args: { p_logo_url: string; p_negocio_id: string }
+        Returns: undefined
+      }
       cerrar_vencidas: { Args: never; Returns: Json }
+      contacto_negocios_comprador: {
+        Args: never
+        Returns: {
+          negocio_id: string
+          telefono_whatsapp: string
+        }[]
+      }
+      dar_de_baja_interesado: { Args: { token: string }; Returns: boolean }
       editar_oferta: {
         Args: {
           p_categoria: Database["public"]["Enums"]["categoria"]
@@ -463,11 +687,14 @@ export type Database = {
           p_cupos_total: number
           p_formato: string
           p_foto_url: string
+          p_lleva?: number
           p_oferta_id: string
+          p_paga?: number
           p_precio_final: number
           p_precio_habitual: number
           p_recogida_desde: string
           p_recogida_hasta: string
+          p_tamano?: string
           p_tiempo_preparacion_min: number
           p_titulo: string
         }
@@ -483,12 +710,15 @@ export type Database = {
           formato: string
           foto_url: string
           id: string
+          lleva: number | null
           negocio_id: string
+          paga: number | null
           precio_final: number
           precio_habitual: number
           publicada_por: string | null
           recogida_desde: string
           recogida_hasta: string
+          tamano: string | null
           tiempo_preparacion_min: number | null
           tipo: Database["public"]["Enums"]["tipo_oferta"]
           titulo: string
@@ -501,10 +731,28 @@ export type Database = {
         }
       }
       es_miembro_negocio: { Args: { negocio: string }; Returns: boolean }
+      estado_planes: {
+        Args: { p_negocio?: string }
+        Returns: {
+          bloquea_en: string
+          estado: Database["public"]["Enums"]["estado_suscripcion"]
+          max_ofertas_activas: number
+          negocio_es_prueba: boolean
+          negocio_id: string
+          negocio_nombre: string
+          negocio_slug: string
+          ofertas_activas: number
+          plan_id: string
+          plan_nombre: string
+          precio_mensual: number
+          vence_en: string
+        }[]
+      }
       has_role: {
         Args: { rol: Database["public"]["Enums"]["app_role"]; uid: string }
         Returns: boolean
       }
+      marcar_suscripciones_vencidas: { Args: never; Returns: number }
       mis_reservas: {
         Args: never
         Returns: {
@@ -514,27 +762,61 @@ export type Database = {
           confirmada_en: string
           entregada_en: string
           estado: Database["public"]["Enums"]["estado_reserva"]
+          formato: string
           foto_url: string
           id: string
           lista_en: string
+          lleva: number
           metodo_pago: Database["public"]["Enums"]["metodo_pago"]
           motivo_rechazo: string
           negocio_direccion: string
           negocio_id: string
+          negocio_logo_url: string
           negocio_nombre: string
+          negocio_slug: string
           observaciones: string
           oferta_id: string
+          paga: number
           precio_habitual_unitario: number
           precio_unitario: number
           recogida_desde: string
           recogida_hasta: string
           solicitada_en: string
+          tamano: string
           titulo: string
         }[]
       }
       oferta_tiene_reservas: { Args: { oferta: string }; Returns: boolean }
       publicar_programadas: { Args: never; Returns: number }
       puede_escribir_foto: { Args: { nombre: string }; Returns: boolean }
+      registrar_pago_mensualidad: {
+        Args: {
+          p_meses?: number
+          p_metodo: string
+          p_negocio: string
+          p_nota?: string
+          p_plan: string
+          p_valor: number
+        }
+        Returns: {
+          creado_en: string
+          id: string
+          metodo: string
+          negocio_id: string
+          nota: string
+          periodo_desde: string
+          periodo_hasta: string
+          plan_id: string
+          registrado_por: string | null
+          valor: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "pagos_mensualidad"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       registrar_vista: {
         Args: { oferta_id: string; origen?: string }
         Returns: undefined
@@ -628,6 +910,7 @@ export type Database = {
         | "lista"
         | "entregada"
         | "no_recogida"
+      estado_suscripcion: "prueba" | "activa" | "vencida" | "suspendida"
       metodo_pago: "efectivo" | "nequi" | "transferencia" | "tarjeta"
       tipo_evento:
         | "view_item"
@@ -788,6 +1071,7 @@ export const Constants = {
         "entregada",
         "no_recogida",
       ],
+      estado_suscripcion: ["prueba", "activa", "vencida", "suspendida"],
       metodo_pago: ["efectivo", "nequi", "transferencia", "tarjeta"],
       tipo_evento: [
         "view_item",

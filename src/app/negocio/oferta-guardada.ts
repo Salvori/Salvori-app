@@ -1,7 +1,7 @@
 import "server-only";
 import type { OfertaInicial } from "@/app/negocio/publicar/formulario-publicar";
 import { formatHora } from "@/lib/formato";
-import type { Formato } from "@/lib/esquema-oferta";
+import { esFormato } from "@/lib/esquema-oferta";
 import { urlFoto } from "@/lib/ofertas";
 import { createClient } from "@/lib/supabase/server";
 import { instanteActual } from "@/lib/tiempo";
@@ -21,7 +21,7 @@ export async function ofertaGuardada(
   const { data: o } = await supabase
     .from("ofertas")
     .select(
-      "titulo, contenido, categoria, formato, foto_url, precio_habitual, precio_final, cupos_total, cupos_disponibles, recogida_desde, recogida_hasta, tiempo_preparacion_min, estado",
+      "titulo, contenido, categoria, formato, tamano, lleva, paga, foto_url, precio_habitual, precio_final, cupos_total, cupos_disponibles, recogida_desde, recogida_hasta, tiempo_preparacion_min, estado",
     )
     .eq("id", id)
     .eq("negocio_id", negocioId)
@@ -33,12 +33,16 @@ export async function ofertaGuardada(
   return {
     inicial: {
       foto: { ruta: o.foto_url, vista },
-      formato: (o.formato === "promocion" ? "promocion" : "combo") as Formato,
+      formato: esFormato(o.formato) ? o.formato : "combo",
       titulo: o.titulo,
       contenido: o.contenido,
+      tamano: o.tamano ?? "",
       categoria: o.categoria,
       precioHabitual: String(o.precio_habitual),
       precioFinal: String(o.precio_final),
+      ...(o.formato === "lleva_paga" && o.lleva && o.paga
+        ? { lleva: String(o.lleva), paga: String(o.paga), precioUnitario: String(Math.round(o.precio_final / o.paga)) }
+        : {}),
       cupos: String(o.cupos_total),
       ...(vigente ? { desde: formatHora(o.recogida_desde), hasta: formatHora(o.recogida_hasta) } : {}),
       preparacion: String(o.tiempo_preparacion_min ?? 10),

@@ -65,7 +65,10 @@ export function urlFoto(ruta: string | null | undefined): string | null {
   if (/^https?:\/\//.test(ruta)) return ruta;
   const base = process.env.NEXT_PUBLIC_SUPABASE_URL;
   if (!base) return null;
-  return `${base}/storage/v1/object/public/ofertas/${ruta.split("/").map(encodeURIComponent).join("/")}`;
+  // «?v=…» (versión del logo) se conserva tal cual para refrescar la caché.
+  const [camino, version] = ruta.split("?");
+  const url = `${base}/storage/v1/object/public/ofertas/${camino.split("/").map(encodeURIComponent).join("/")}`;
+  return version ? `${url}?${version}` : url;
 }
 
 /** Ordena por distancia y, a igual distancia, por la ventana que cierra antes. */
@@ -73,4 +76,28 @@ export function ordenarCercanas<T extends { km: number; recogida_hasta: string }
   return [...ofertas].sort(
     (a, b) => a.km - b.km || new Date(a.recogida_hasta).getTime() - new Date(b.recogida_hasta).getTime(),
   );
+}
+
+/** «3 unidades disponibles», «1 unidad disponible»; en «Lleva N, paga M», paquetes. */
+export function textoDisponibles(n: number, formato?: string | null): string {
+  if (n <= 0) return "Agotada";
+  if (formato === "lleva_paga") return n === 1 ? "1 paquete disponible" : `${n} paquetes disponibles`;
+  return n === 1 ? "1 unidad disponible" : `${n} unidades disponibles`;
+}
+
+/** Ruta del logo del negocio en el bucket «ofertas». */
+export function rutaLogo(negocioId: string, version = Date.now()): string {
+  return `negocios/${negocioId}/logo.webp?v=${version}`;
+}
+
+/** Inicial del negocio para el avatar sin logo. */
+export function inicialNegocio(nombre: string): string {
+  return (nombre.trim().match(/[\p{L}\p{N}]/u)?.[0] ?? "S").toLocaleUpperCase("es-CO");
+}
+
+/** Coordenadas sin ajustar: (0, 0) o el punto por defecto del centro de Popayán. */
+export function faltanCoordenadas(p: { lat: number | null; lng: number | null }): boolean {
+  if (p.lat == null || p.lng == null) return true;
+  if (p.lat === 0 && p.lng === 0) return true;
+  return Math.abs(p.lat - CENTRO_POPAYAN.lat) < 1e-6 && Math.abs(p.lng - CENTRO_POPAYAN.lng) < 1e-6;
 }

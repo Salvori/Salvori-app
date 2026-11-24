@@ -7,6 +7,9 @@ export type OfertaTarjeta = {
   titulo: string;
   categoria: string;
   formato: string;
+  tamano: string | null;
+  lleva: number | null;
+  paga: number | null;
   foto_url: string;
   precio_habitual: number;
   precio_final: number;
@@ -14,7 +17,7 @@ export type OfertaTarjeta = {
   recogida_desde: string;
   recogida_hasta: string;
   estado: "activa" | "agotada" | "borrador" | "cerrada";
-  negocio: { id: string; nombre: string; slug: string; lat: number; lng: number };
+  negocio: { id: string; nombre: string; slug: string; lat: number; lng: number; logo_url: string | null };
   calificacion: { promedio: number; total: number } | null;
 };
 
@@ -27,7 +30,7 @@ export async function ofertasPublicas(): Promise<OfertaTarjeta[] | null> {
   const { data, error } = await db
     .from("ofertas")
     .select(
-      "id, titulo, categoria, formato, foto_url, precio_habitual, precio_final, cupos_disponibles, recogida_desde, recogida_hasta, estado, negocio:negocios(id, nombre, slug, lat, lng)",
+      "id, titulo, categoria, formato, tamano, lleva, paga, foto_url, precio_habitual, precio_final, cupos_disponibles, recogida_desde, recogida_hasta, estado, negocio:negocios(id, nombre, slug, lat, lng, logo_url)",
     )
     .in("estado", ["activa", "agotada"])
     .gte("recogida_hasta", new Date().toISOString())

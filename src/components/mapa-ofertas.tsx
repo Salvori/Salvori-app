@@ -6,7 +6,8 @@ import { MapContainer, Marker, Popup, TileLayer, useMap, useMapEvents } from "re
 import type { OfertaTarjeta } from "@/lib/catalogo";
 import { etiquetaFormato } from "@/lib/esquema-oferta";
 import { formatCOP } from "@/lib/formato";
-import { textoDescuento, textoDistancia, type Punto } from "@/lib/ofertas";
+import { textoDescuento, textoDisponibles, textoDistancia, type Punto } from "@/lib/ofertas";
+import { LogoNegocio } from "./logo-negocio";
 import { pinComprador, pinNegocio } from "./pines";
 
 type OfertaCercana = OfertaTarjeta & { km: number };
@@ -62,22 +63,31 @@ export default function MapaOfertas({
         <Marker key={g.negocio.id} position={[g.negocio.lat, g.negocio.lng]} icon={pinNegocio(g.ofertas.length)} title={g.negocio.nombre}>
           <Popup minWidth={220}>
             <div className="font-sans">
-              <p className="font-display text-base font-extrabold text-primary">{g.negocio.nombre}</p>
-              <p className="text-xs text-muted-foreground">{textoDistancia(g.km)}</p>
+              <div className="flex items-center gap-2">
+                <LogoNegocio nombre={g.negocio.nombre} logo={g.negocio.logo_url} tamano="md" />
+                <div>
+                  <p className="font-display text-base font-extrabold text-primary">{g.negocio.nombre}</p>
+                  <p className="text-xs text-muted-foreground">{textoDistancia(g.km)}</p>
+                </div>
+              </div>
               <ul className="mt-2 space-y-2">
                 {g.ofertas.map((o) => (
                   <li key={o.id}>
                     <a href={`/oferta/${o.id}`} className="block rounded-lg bg-secondary px-2 py-1.5 !text-foreground no-underline">
                       <span className="block text-sm font-bold">{o.titulo}</span>
                       <span className="text-xs">
-                        {etiquetaFormato(o.formato)} · {formatCOP(o.precio_final)} · {textoDescuento(o.precio_final, o.precio_habitual)}
-                        {o.cupos_disponibles > 0 ? ` · quedan ${o.cupos_disponibles}` : " · agotada"}
+                        {etiquetaFormato(o.formato, o.lleva, o.paga)}
+                        {o.tamano ? ` · ${o.tamano}` : ""} · {formatCOP(o.precio_final)} · {textoDescuento(o.precio_final, o.precio_habitual)} ·{" "}
+                        {textoDisponibles(o.cupos_disponibles, o.formato).toLowerCase()}
                       </span>
-                      <span className="mt-0.5 block text-xs font-bold text-primary">Ver combo →</span>
+                      <span className="mt-0.5 block text-xs font-bold text-primary">Ver oferta →</span>
                     </a>
                   </li>
                 ))}
               </ul>
+              <a href={`/n/${g.negocio.slug}`} className="mt-2 block text-xs font-bold !text-primary">
+                Ver el negocio →
+              </a>
             </div>
           </Popup>
         </Marker>
