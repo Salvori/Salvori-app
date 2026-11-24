@@ -39,7 +39,7 @@ export function MiLocal({ local }: { local: DatosLocal }) {
           <MapaNegocioDinamico lat={local.lat} lng={local.lng} nombre={local.nombre} direccion={local.direccion} />
         </div>
       )}
-      <Link href={`/n/${local.slug}`} className="mt-3 inline-block text-sm font-semibold text-primary underline underline-offset-4">
+      <Link href={`/n/${local.slug}`} className="mt-1 inline-block py-2 text-sm font-semibold text-primary underline underline-offset-4">
         Ver mi ficha pública
       </Link>
     </section>

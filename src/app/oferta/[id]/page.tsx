@@ -132,7 +132,7 @@ async function Ficha({ params }: { params: Promise<{ id: string }> }) {
             </li>
           )}
           <li>
-            <Link href={`/n/${o.negocio.slug}`} className="font-semibold text-primary underline underline-offset-4">
+            <Link href={`/n/${o.negocio.slug}`} className="inline-block py-2 font-semibold text-primary underline underline-offset-4">
               Ver más de {o.negocio.nombre}
             </Link>
           </li>

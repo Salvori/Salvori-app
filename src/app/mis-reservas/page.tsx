@@ -155,7 +155,7 @@ async function Lista({ searchParams }: { searchParams: Promise<{ nueva?: string 
         </ul>
       )}
       <form action={salir} className="mt-10 text-center">
-        <button type="submit" className="text-sm text-muted-foreground underline underline-offset-4">
+        <button type="submit" className="px-2 py-3 text-sm text-muted-foreground underline underline-offset-4">
           Salir de mi cuenta ({usuario.email})
         </button>
       </form>
