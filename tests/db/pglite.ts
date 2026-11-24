@@ -1,6 +1,6 @@
 // Base de datos local en memoria (PGlite, sin Docker) con todas las migraciones.
 // Imita lo mínimo de Supabase: roles anon/authenticated/service_role/authenticator,
-// auth.users y auth.uid(), storage, pg_cron (schedule sin efecto) y la publicación
+// auth.users y auth.uid(), storage, pg_cron (schedule sin efecto), pg_net (se omite) y la publicación
 // de Realtime. Sirve para probar triggers, RLS y funciones antes de tocar staging.
 import { randomUUID } from "node:crypto";
 import { readdirSync, readFileSync } from "node:fs";
@@ -34,7 +34,7 @@ export async function crearBaseLocal(antesDe?: { migracion: string; sembrar: (db
   await db.exec(STUBS);
   for (const archivo of readdirSync(MIGRACIONES).filter((f) => f.endsWith(".sql")).sort()) {
     if (antesDe && archivo.startsWith(antesDe.migracion)) await antesDe.sembrar(db);
-    const sql = readFileSync(join(MIGRACIONES, archivo), "utf8").replace(/CREATE EXTENSION IF NOT EXISTS pg_cron[^;]*;/g, "");
+    const sql = readFileSync(join(MIGRACIONES, archivo), "utf8").replace(/CREATE EXTENSION IF NOT EXISTS (pg_cron|pg_net)[^;]*;/g, "");
     await db.exec(sql);
   }
 
