@@ -4,11 +4,11 @@ import { correoReserva } from "@/lib/correo-reserva";
 import { clienteServicio } from "@/lib/supabase/admin";
 
 /**
- * Correo al comprador cuando su reserva se confirma o se rechaza.
+ * Correo al comprador cuando su reserva se confirma, se rechaza o el negocio no pudo cumplirla.
  * Lee el correo del comprador con la service_role, solo en el servidor: el negocio nunca lo ve.
  * Nunca lanza: si falta la configuración o algo falla, deja el aviso en el registro.
  */
-export async function avisarComprador(reservaId: string, estado: "confirmada" | "rechazada", origen: string): Promise<void> {
+export async function avisarComprador(reservaId: string, estado: "confirmada" | "rechazada" | "incumplida", origen: string): Promise<void> {
   try {
     const db = clienteServicio();
     if (!db) {
@@ -18,11 +18,13 @@ export async function avisarComprador(reservaId: string, estado: "confirmada" | 
     const { data: r } = await db
       .from("reservas")
       .select(
-        "comprador_id, cantidad, precio_unitario, codigo, motivo_rechazo, recogida_desde, recogida_hasta, estado, oferta:ofertas(titulo, negocio:negocios(nombre, direccion))",
+        "comprador_id, cantidad, precio_unitario, codigo, motivo_rechazo, motivo_incumplimiento, incumplida_por, recogida_desde, recogida_hasta, estado, oferta:ofertas(titulo, negocio:negocios(nombre, direccion))",
       )
       .eq("id", reservaId)
       .maybeSingle();
-    if (!r || r.estado !== estado || !r.oferta?.negocio) return;
+    const incumplida = estado === "incumplida";
+    if (!r || !r.oferta?.negocio) return;
+    if (incumplida ? r.estado !== "cancelada" || !r.incumplida_por : r.estado !== estado) return;
 
     const { data: usuario } = await db.auth.admin.getUserById(r.comprador_id);
     const para = usuario?.user?.email;
@@ -35,7 +37,8 @@ export async function avisarComprador(reservaId: string, estado: "confirmada" | 
     await enviarCorreo({
       para,
       ...correoReserva({
-        estado,
+        // «No pude cumplir» usa el mismo correo que el rechazo: el negocio no pudo atenderla, con su motivo.
+        estado: incumplida ? "rechazada" : (estado as "confirmada" | "rechazada"),
         titulo: r.oferta.titulo,
         cantidad: r.cantidad,
         precioUnitario: r.precio_unitario,
@@ -44,7 +47,7 @@ export async function avisarComprador(reservaId: string, estado: "confirmada" | 
         recogidaDesde: r.recogida_desde,
         recogidaHasta: r.recogida_hasta,
         codigo: r.codigo,
-        motivo: r.motivo_rechazo,
+        motivo: incumplida ? r.motivo_incumplimiento : r.motivo_rechazo,
         sitio,
       }),
     });

@@ -22,14 +22,16 @@ async function Perfil({ searchParams }: { searchParams: Promise<{ primera?: stri
   const siguiente = next ? rutaSegura(next) : undefined;
 
   const supabase = await createClient();
-  const [{ data: datos }, { data: ahorro }, { count: compras }, direccion, { data: interes }] = await Promise.all([
+  const [{ data: datos }, { data: ahorro }, { count: compras }, direccion, { data: interes }, { data: puntaje }] = await Promise.all([
     supabase.auth.getUser(),
     supabase.rpc("ahorro_comprador", { uid: usuario.id }),
     supabase.from("reservas").select("id", { count: "exact", head: true }).eq("comprador_id", usuario.id).eq("estado", "entregada"),
     direccionGuardada(usuario.id),
     // Si la tabla aún no existe en este entorno, se muestra el formulario vacío.
     supabase.from("interesados").select("correo, radio_km, origen_ubicacion").eq("user_id", usuario.id).maybeSingle(),
+    supabase.rpc("puntaje_comprador", { uid: usuario.id }),
   ]);
+  const cumplimiento = puntaje?.[0];
   const nombre = (datos.user?.user_metadata?.nombre as string | undefined) ?? "";
 
   return (
@@ -50,6 +52,24 @@ async function Perfil({ searchParams }: { searchParams: Promise<{ primera?: stri
         <p className="font-display text-4xl font-extrabold">{formatCOP(Number(ahorro ?? 0))}</p>
         <p className="mt-1 text-sm text-primary-foreground/85">
           {compras ?? 0} {compras === 1 ? "compra recogida" : "compras recogidas"}
+        </p>
+      </section>
+
+      <section className="mb-6 rounded-2xl bg-card p-5 shadow-card" aria-labelledby="titulo-cumplimiento">
+        <div className="flex items-baseline justify-between gap-3">
+          <h2 id="titulo-cumplimiento" className="font-display text-lg font-bold text-primary">
+            Tu puntaje de cumplimiento
+          </h2>
+          <p className="font-display text-2xl font-extrabold text-primary">
+            {cumplimiento?.cerradas ? `${Number(cumplimiento.puntaje).toFixed(1).replace(".", ",")}/5` : "Nuevo"}
+          </p>
+        </div>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Sale de tus últimas 10 reservas: recogida = 5, cancelada después de confirmada = 3, no recogida = 1. Los
+          negocios lo ven antes de aceptar.
+          {cumplimiento?.cerradas && Number(cumplimiento.puntaje) < 3 && cumplimiento.cerradas >= 3
+            ? " Mientras esté por debajo de 3, solo puedes tener una reserva activa a la vez."
+            : ""}
         </p>
       </section>
 

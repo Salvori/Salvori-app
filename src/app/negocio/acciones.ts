@@ -14,7 +14,7 @@ export type EstadoGestion = { ok?: string; error?: string } | null;
 
 const esquema = z.object({
   reservaId: z.uuid(),
-  estado: z.enum(["confirmada", "rechazada", "lista", "entregada", "no_recogida"]),
+  estado: z.enum(["confirmada", "rechazada", "lista", "entregada", "no_recogida", "incumplida"]),
   motivo: z.string().trim().max(300).optional(),
   codigo: z.string().trim().toUpperCase().optional(),
   metodo: z.enum(["efectivo", "nequi", "transferencia", "tarjeta"]).optional(),
@@ -26,6 +26,7 @@ const OK: Record<string, string> = {
   lista: "Marcada como lista para recoger.",
   entregada: "¡Entregada! Venta registrada.",
   no_recogida: "Marcada como no recogida.",
+  incumplida: "Reserva cancelada. Le avisamos al comprador; cuenta como un incumplimiento en tu puntaje.",
 };
 
 // La RPC valida rol, membresía y transición; aquí solo se arma el pedido.
@@ -52,18 +53,23 @@ export async function gestionarReserva(_p: EstadoGestion, form: FormData): Promi
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.rpc("cambiar_estado_reserva", {
-    reserva_id: d.data.reservaId,
-    nuevo_estado: d.data.estado,
-    datos,
-  });
+  // «No pude cumplir» tiene su propia función: motivo obligatorio y marca de incumplimiento.
+  if (d.data.estado === "incumplida" && !d.data.motivo) return { error: "Escribe por qué no pudiste cumplir." };
+  const { error } =
+    d.data.estado === "incumplida"
+      ? await supabase.rpc("no_pude_cumplir", { reserva_id: d.data.reservaId, motivo: d.data.motivo! })
+      : await supabase.rpc("cambiar_estado_reserva", {
+          reserva_id: d.data.reservaId,
+          nuevo_estado: d.data.estado,
+          datos,
+        });
   if (error) {
     if (/código de recogida no coincide/i.test(error.message)) return { error: "El código no coincide. Pídelo de nuevo al comprador." };
     if (/aún no ha terminado/i.test(error.message)) return { error: "Solo se marca «no recogida» cuando termina la ventana." };
     return { error: mensajeAmigable(error) };
   }
   // Correo al comprador, después de responder: si falla o falta el SMTP, la gestión ya quedó hecha.
-  if (d.data.estado === "confirmada" || d.data.estado === "rechazada") {
+  if (d.data.estado === "confirmada" || d.data.estado === "rechazada" || d.data.estado === "incumplida") {
     const { reservaId, estado } = d.data;
     const origen = await origenActual();
     after(() => avisarComprador(reservaId, estado, origen));

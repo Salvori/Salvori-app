@@ -8,9 +8,11 @@ const REGLAS: Array<[RegExp, string]> = [
   [/inicia sesión/i, "Entra con tu correo para continuar."],
   [/cantidad debe ser mayor/i, "Elige al menos una unidad."],
   [/máximo permitido/i, "Las observaciones son demasiado largas."],
-  [/solo el comprador puede cancelar/i, "Solo puedes cancelar tus reservas mientras esperan confirmación."],
   [/cambio de estado no está permitido/i, "Esta reserva ya cambió de estado. Actualiza la página."],
   [/horario de recogida ya terminó/i, "El horario de recogida ya terminó."],
+  [/una reserva activa a la vez/i, "Por tu puntaje de cumplimiento solo puedes tener una reserva activa a la vez. Recoge o cancela la que tienes."],
+  [/Indica por qué no pudiste cumplir/i, "Escribe por qué no pudiste cumplir."],
+  [/Solo el comprador puede cancelar/i, "Solo puedes cancelar tus propias reservas."],
 ];
 
 export function mensajeAmigable(error: ErrorRpc): string {

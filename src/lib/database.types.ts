@@ -513,8 +513,10 @@ export type Database = {
           entregada_en: string | null
           estado: Database["public"]["Enums"]["estado_reserva"]
           id: string
+          incumplida_por: string | null
           lista_en: string | null
           metodo_pago: Database["public"]["Enums"]["metodo_pago"] | null
+          motivo_incumplimiento: string | null
           motivo_rechazo: string | null
           no_recogida_en: string | null
           observaciones: string
@@ -536,8 +538,10 @@ export type Database = {
           entregada_en?: string | null
           estado?: Database["public"]["Enums"]["estado_reserva"]
           id?: string
+          incumplida_por?: string | null
           lista_en?: string | null
           metodo_pago?: Database["public"]["Enums"]["metodo_pago"] | null
+          motivo_incumplimiento?: string | null
           motivo_rechazo?: string | null
           no_recogida_en?: string | null
           observaciones?: string
@@ -559,8 +563,10 @@ export type Database = {
           entregada_en?: string | null
           estado?: Database["public"]["Enums"]["estado_reserva"]
           id?: string
+          incumplida_por?: string | null
           lista_en?: string | null
           metodo_pago?: Database["public"]["Enums"]["metodo_pago"] | null
+          motivo_incumplimiento?: string | null
           motivo_rechazo?: string | null
           no_recogida_en?: string | null
           observaciones?: string
@@ -649,6 +655,13 @@ export type Database = {
     }
     Functions: {
       ahorro_comprador: { Args: { uid: string }; Returns: number }
+      calcular_puntaje_comprador: {
+        Args: { uid: string }
+        Returns: {
+          cerradas: number
+          puntaje: number
+        }[]
+      }
       calificaciones_negocio: {
         Args: { negocio_id: string }
         Returns: {
@@ -752,6 +765,13 @@ export type Database = {
         Args: { rol: Database["public"]["Enums"]["app_role"]; uid: string }
         Returns: boolean
       }
+      incumplimientos_recientes: {
+        Args: never
+        Returns: {
+          negocio_id: string
+          total: number
+        }[]
+      }
       marcar_suscripciones_vencidas: { Args: never; Returns: number }
       mis_reservas: {
         Args: never
@@ -765,9 +785,11 @@ export type Database = {
           formato: string
           foto_url: string
           id: string
+          incumplida_por: string
           lista_en: string
           lleva: number
           metodo_pago: Database["public"]["Enums"]["metodo_pago"]
+          motivo_incumplimiento: string
           motivo_rechazo: string
           negocio_direccion: string
           negocio_id: string
@@ -786,9 +808,20 @@ export type Database = {
           titulo: string
         }[]
       }
+      no_pude_cumplir: {
+        Args: { motivo: string; reserva_id: string }
+        Returns: undefined
+      }
       oferta_tiene_reservas: { Args: { oferta: string }; Returns: boolean }
       publicar_programadas: { Args: never; Returns: number }
       puede_escribir_foto: { Args: { nombre: string }; Returns: boolean }
+      puntaje_comprador: {
+        Args: { uid: string }
+        Returns: {
+          cerradas: number
+          puntaje: number
+        }[]
+      }
       registrar_pago_mensualidad: {
         Args: {
           p_meses?: number
@@ -825,18 +858,22 @@ export type Database = {
         Args: { negocio_id: string }
         Returns: {
           cantidad: number
+          cerradas_comprador: number
           codigo: string
           confirmada_en: string
           entregada_en: string
           estado: Database["public"]["Enums"]["estado_reserva"]
           id: string
+          incumplida_por: string
           lista_en: string
           metodo_pago: Database["public"]["Enums"]["metodo_pago"]
+          motivo_incumplimiento: string
           motivo_rechazo: string
           nombre_comprador: string
           observaciones: string
           oferta_id: string
           precio_unitario: number
+          puntaje_comprador: number
           recogida_desde: string
           recogida_hasta: string
           solicitada_en: string
@@ -867,8 +904,10 @@ export type Database = {
           entregada_en: string | null
           estado: Database["public"]["Enums"]["estado_reserva"]
           id: string
+          incumplida_por: string | null
           lista_en: string | null
           metodo_pago: Database["public"]["Enums"]["metodo_pago"] | null
+          motivo_incumplimiento: string | null
           motivo_rechazo: string | null
           no_recogida_en: string | null
           observaciones: string
