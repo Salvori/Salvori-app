@@ -42,13 +42,13 @@ function Lista() {
               </div>
               <div className="mt-3 flex items-center gap-2">
                 <div className="flex items-center gap-2 rounded-full border px-2 py-1">
-                  <button type="button" aria-label="Menos cupos" onClick={() => demo.ajustarCupos(c.id, -1)} className="grid size-8 place-items-center rounded-full bg-muted">
+                  <button type="button" aria-label="Menos unidades" onClick={() => demo.ajustarCupos(c.id, -1)} className="grid size-8 place-items-center rounded-full bg-muted">
                     <Minus className="size-4" aria-hidden />
                   </button>
                   <span className="min-w-14 text-center text-sm">
-                    <strong className="font-display text-lg">{c.cuposDisponibles}</strong> cupos
+                    <strong className="font-display text-lg">{c.cuposDisponibles}</strong> {c.cuposDisponibles === 1 ? "unidad" : "unidades"}
                   </span>
-                  <button type="button" aria-label="Más cupos" onClick={() => demo.ajustarCupos(c.id, 1)} className="grid size-8 place-items-center rounded-full bg-muted">
+                  <button type="button" aria-label="Más unidades" onClick={() => demo.ajustarCupos(c.id, 1)} className="grid size-8 place-items-center rounded-full bg-muted">
                     <Plus className="size-4" aria-hidden />
                   </button>
                 </div>
@@ -75,7 +75,7 @@ export default function MisCombos() {
         <div className="flex items-center justify-between gap-2">
           <div>
             <h1 className="font-display text-2xl font-extrabold text-primary">Mis combos</h1>
-            <p className="text-sm text-muted-foreground">Ajusta cupos o pausa lo que ya no tengas.</p>
+            <p className="text-sm text-muted-foreground">Ajusta las unidades o pausa lo que ya no tengas.</p>
           </div>
           <Link href="/demo/negocio/combos/nuevo" className="flex items-center gap-1 rounded-full bg-accent px-4 py-2.5 font-display font-extrabold text-accent-foreground">
             <Plus className="size-4" aria-hidden /> Nuevo

@@ -1,10 +1,13 @@
 import { expect, test } from "@playwright/test";
-import { USUARIOS, admin, clienteComo, cookiesDeSesion, crearOfertaTemporal, hayStaging } from "./staging";
+import { USUARIOS, admin, clienteComo, cookiesDeSesion, crearOfertaTemporal, hayStaging, SIN_MIGRACION_MARCA, faltaMigracionMarca } from "./staging";
 
 // Negocio edita un combo y su descuento → comprador guarda su dirección → ve el pin y la
 // distancia → reserva → negocio confirma → comprador descarga el ticket (PNG y PDF).
 test.describe("demo del comprador: combo editado, dirección, mapa y ticket", () => {
   test.skip(!hayStaging, "Necesita .env.local de staging y los usuarios de prueba.");
+  test.beforeAll(async () => {
+    test.skip(await faltaMigracionMarca(), SIN_MIGRACION_MARCA);
+  });
   test.describe.configure({ mode: "serial", timeout: 150_000 });
 
   let datos: Awaited<ReturnType<typeof crearOfertaTemporal>>;
@@ -84,7 +87,7 @@ test.describe("demo del comprador: combo editado, dirección, mapa y ticket", ()
     const tarjeta = comprador.locator("article", { hasText: datos.titulo });
     await expect(tarjeta.getByText("Promoción")).toBeVisible();
     await expect(tarjeta.getByText("−50 %")).toBeVisible();
-    await expect(tarjeta.getByText("Quedan 3")).toBeVisible();
+    await expect(tarjeta.getByText("3 unidades disponibles")).toBeVisible();
     await expect(tarjeta.getByText(/min a pie/)).toBeVisible();
     await expect(tarjeta.locator(".line-through")).toHaveText("$ 9.000");
 

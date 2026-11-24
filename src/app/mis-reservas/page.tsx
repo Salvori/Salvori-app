@@ -4,6 +4,8 @@ import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { Clock, MapPin } from "lucide-react";
 import { Cabecera } from "@/components/cabecera";
+import { LogoNegocio } from "@/components/logo-negocio";
+import { etiquetaFormato } from "@/lib/esquema-oferta";
 import { ESTADO_COMPRADOR, muestraCodigo, textoEstado, type EstadoReserva } from "@/lib/estados";
 import { formatCOP } from "@/lib/formato";
 import { textoVentana } from "@/lib/ofertas";
@@ -64,8 +66,14 @@ async function Lista({ searchParams }: { searchParams: Promise<{ nueva?: string 
                   {textoEstado(estado, r.motivo_rechazo)}
                 </span>
                 <h2 className="mt-3 font-display text-lg font-bold leading-snug text-primary">{r.titulo}</h2>
-                <p className="text-sm text-muted-foreground">
-                  {r.negocio_nombre} · {r.cantidad} × {formatCOP(r.precio_unitario)}
+                <p className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                  <Link href={`/n/${r.negocio_slug}`} className="flex items-center gap-1.5 font-semibold text-foreground hover:text-primary">
+                    <LogoNegocio nombre={r.negocio_nombre} logo={r.negocio_logo_url} tamano="sm" />
+                    {r.negocio_nombre}
+                  </Link>
+                  · {r.cantidad} × {formatCOP(r.precio_unitario)}
+                  {r.formato === "lleva_paga" ? ` (paquete ${etiquetaFormato(r.formato, r.lleva, r.paga).toLowerCase()})` : ""}
+                  {r.tamano ? ` · ${r.tamano}` : ""}
                 </p>
                 {muestraCodigo(estado) && r.codigo && (
                   <>
@@ -78,6 +86,10 @@ async function Lista({ searchParams }: { searchParams: Promise<{ nueva?: string 
                         total: formatCOP(r.precio_unitario * r.cantidad),
                         comprador,
                         negocio: r.negocio_nombre,
+                        negocioLogo: r.negocio_logo_url,
+                        detalle: [r.formato === "lleva_paga" ? `Paquete ${etiquetaFormato(r.formato, r.lleva, r.paga).toLowerCase()}` : null, r.tamano]
+                          .filter(Boolean)
+                          .join(" · "),
                         direccion: r.negocio_direccion,
                         ventana: textoVentana(r.recogida_desde, r.recogida_hasta),
                       }}

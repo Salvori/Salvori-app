@@ -1,9 +1,12 @@
 import { expect, test } from "@playwright/test";
 import { randomUUID } from "node:crypto";
-import { USUARIOS, admin, borrarNegocio, clienteComo, cookiesDeSesion, hayAdmin, publicarEnTresPasos } from "./staging";
+import { USUARIOS, admin, borrarNegocio, clienteComo, cookiesDeSesion, hayAdmin, publicarEnTresPasos, SIN_MIGRACION_MARCA, faltaMigracionMarca } from "./staging";
 
 test.describe("admin: crea un negocio, vincula su usuario, publica por él y gestiona sus reservas", () => {
   test.skip(!hayAdmin, "Necesita .env.local de staging y los usuarios de prueba (incluido el admin).");
+  test.beforeAll(async () => {
+    test.skip(await faltaMigracionMarca(), SIN_MIGRACION_MARCA);
+  });
   test.describe.configure({ mode: "serial", timeout: 120_000 });
 
   const sufijo = randomUUID().slice(0, 6);

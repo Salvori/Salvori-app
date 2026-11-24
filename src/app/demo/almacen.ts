@@ -157,7 +157,7 @@ export const demo = {
     let id = "";
     cambiar((e) => {
       const combo = e.combos.find((x) => x.id === datos.comboId);
-      if (!combo || combo.cuposDisponibles < datos.cantidad) throw new Error("Ya no quedan cupos suficientes.");
+      if (!combo || combo.cuposDisponibles < datos.cantidad) throw new Error("Ya no quedan unidades suficientes.");
       combo.cuposDisponibles -= datos.cantidad;
       id = `p-${Date.now()}`;
       e.pedidos.unshift({

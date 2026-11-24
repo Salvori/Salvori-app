@@ -41,7 +41,7 @@ describe("ofertas", () => {
 
 describe("mensajeAmigable", () => {
   it("traduce los errores de las funciones", () => {
-    expect(mensajeAmigable({ message: "No hay suficientes cupos disponibles." })).toMatch(/cupos/);
+    expect(mensajeAmigable({ message: "No hay suficientes cupos disponibles." })).toMatch(/unidades/);
     expect(mensajeAmigable({ message: "La oferta está fuera del horario de recogida." })).toMatch(/horario/);
     expect(mensajeAmigable({ message: "otra cosa", code: "42501" })).toMatch(/permiso/);
     expect(mensajeAmigable(null)).toMatch(/Intenta de nuevo/);

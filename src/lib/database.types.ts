@@ -170,6 +170,7 @@ export type Database = {
           id: string
           lat: number
           lng: number
+          logo_url: string | null
           nombre: string
           slug: string
           telefono_whatsapp: string | null
@@ -186,6 +187,7 @@ export type Database = {
           id?: string
           lat: number
           lng: number
+          logo_url?: string | null
           nombre: string
           slug: string
           telefono_whatsapp?: string | null
@@ -202,6 +204,7 @@ export type Database = {
           id?: string
           lat?: number
           lng?: number
+          logo_url?: string | null
           nombre?: string
           slug?: string
           telefono_whatsapp?: string | null
@@ -269,12 +272,15 @@ export type Database = {
           formato: string
           foto_url: string
           id: string
+          lleva: number | null
           negocio_id: string
+          paga: number | null
           precio_final: number
           precio_habitual: number
           publicada_por: string | null
           recogida_desde: string
           recogida_hasta: string
+          tamano: string | null
           tiempo_preparacion_min: number | null
           tipo: Database["public"]["Enums"]["tipo_oferta"]
           titulo: string
@@ -291,12 +297,15 @@ export type Database = {
           formato?: string
           foto_url: string
           id?: string
+          lleva?: number | null
           negocio_id: string
+          paga?: number | null
           precio_final: number
           precio_habitual: number
           publicada_por?: string | null
           recogida_desde: string
           recogida_hasta: string
+          tamano?: string | null
           tiempo_preparacion_min?: number | null
           tipo: Database["public"]["Enums"]["tipo_oferta"]
           titulo: string
@@ -313,12 +322,15 @@ export type Database = {
           formato?: string
           foto_url?: string
           id?: string
+          lleva?: number | null
           negocio_id?: string
+          paga?: number | null
           precio_final?: number
           precio_habitual?: number
           publicada_por?: string | null
           recogida_desde?: string
           recogida_hasta?: string
+          tamano?: string | null
           tiempo_preparacion_min?: number | null
           tipo?: Database["public"]["Enums"]["tipo_oferta"]
           titulo?: string
@@ -447,6 +459,10 @@ export type Database = {
           creado_en: string
         }[]
       }
+      cambiar_logo_negocio: {
+        Args: { p_logo_url: string; p_negocio_id: string }
+        Returns: undefined
+      }
       cambiar_estado_reserva: {
         Args: {
           datos?: Json
@@ -462,12 +478,15 @@ export type Database = {
           p_contenido: string
           p_cupos_total: number
           p_formato: string
+          p_lleva?: number
           p_foto_url: string
           p_oferta_id: string
+          p_paga?: number
           p_precio_final: number
           p_precio_habitual: number
           p_recogida_desde: string
           p_recogida_hasta: string
+          p_tamano?: string
           p_tiempo_preparacion_min: number
           p_titulo: string
         }
@@ -483,12 +502,15 @@ export type Database = {
           formato: string
           foto_url: string
           id: string
+          lleva: number | null
           negocio_id: string
+          paga: number | null
           precio_final: number
           precio_habitual: number
           publicada_por: string | null
           recogida_desde: string
           recogida_hasta: string
+          tamano: string | null
           tiempo_preparacion_min: number | null
           tipo: Database["public"]["Enums"]["tipo_oferta"]
           titulo: string
@@ -515,20 +537,26 @@ export type Database = {
           entregada_en: string
           estado: Database["public"]["Enums"]["estado_reserva"]
           foto_url: string
+          formato: string
           id: string
           lista_en: string
+          lleva: number
           metodo_pago: Database["public"]["Enums"]["metodo_pago"]
           motivo_rechazo: string
           negocio_direccion: string
           negocio_id: string
+          negocio_logo_url: string
           negocio_nombre: string
+          negocio_slug: string
           observaciones: string
           oferta_id: string
+          paga: number
           precio_habitual_unitario: number
           precio_unitario: number
           recogida_desde: string
           recogida_hasta: string
           solicitada_en: string
+          tamano: string
           titulo: string
         }[]
       }

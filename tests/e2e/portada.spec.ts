@@ -1,6 +1,9 @@
 import { expect, test } from "@playwright/test";
+import { SIN_MIGRACION_MARCA, faltaMigracionMarca, hayStaging } from "./staging";
 
 test("la portada abre en español con el lema de Salvori", async ({ page }) => {
+  // Con staging sin la migración de oferta y marca, el catálogo falla (pide columnas nuevas).
+  test.skip(hayStaging && (await faltaMigracionMarca()), SIN_MIGRACION_MARCA);
   await page.goto("/");
   await expect(page).toHaveTitle("Salvori — Ofertas de comida cerca de ti");
   await expect(page.locator("html")).toHaveAttribute("lang", "es-CO");

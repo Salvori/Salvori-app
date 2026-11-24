@@ -32,6 +32,9 @@ export async function publicarOferta(_p: EstadoPublicar, form: FormData): Promis
     negocio_id: d.negocioId,
     tipo: "comercial", // carril solo comercial (decisión del 14 nov)
     formato: d.formato,
+    tamano: d.tamano,
+    lleva: d.lleva,
+    paga: d.paga,
     titulo: d.titulo,
     contenido: d.contenido,
     categoria: d.categoria,
@@ -87,10 +90,14 @@ export async function editarOferta(_p: EstadoPublicar, form: FormData): Promise<
     p_recogida_hasta: ventana.hasta,
     // La función acepta null (sin tiempo de preparación); el generador de tipos no lo refleja.
     p_tiempo_preparacion_min: (d.preparacion ?? null) as number,
+    // Igual: null quita el tamaño o el «lleva/paga».
+    p_tamano: d.tamano as string,
+    p_lleva: d.lleva as number,
+    p_paga: d.paga as number,
   });
   if (error) {
-    const reservados = /Ya hay (\d+) cupos reservados/.exec(error.message);
-    if (reservados) return { error: `Ya hay ${reservados[1]} cupos reservados: la oferta no puede quedar con menos.` };
+    const reservados = /Ya hay (\d+) (?:cupos|unidades) reservad/.exec(error.message);
+    if (reservados) return { error: `Ya hay ${reservados[1]} unidades reservadas: la oferta no puede quedar con menos.` };
     if (/solo se editan ofertas vigentes/i.test(error.message)) return { error: "Esta oferta ya cerró: duplícala para publicarla de nuevo." };
     if (/hora de fin ya pasó/i.test(error.message)) return { error: "La hora de fin ya pasó. Elige una ventana de recogida futura." };
     return { error: mensajeAmigable(error) };

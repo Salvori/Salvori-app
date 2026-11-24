@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { Download, FileText } from "lucide-react";
+import { LogoNegocio } from "@/components/logo-negocio";
 
 export type DatosTicket = {
   codigo: string;
@@ -10,6 +11,9 @@ export type DatosTicket = {
   total: string;
   comprador: string;
   negocio: string;
+  negocioLogo?: string | null;
+  /** «Paquete lleva 3, paga 2 · 500 g» (vacío si no aplica). */
+  detalle?: string;
   direccion: string | null;
   ventana: string;
 };
@@ -81,12 +85,16 @@ export function TicketReserva({ d }: { d: DatosTicket }) {
             <p className="font-display text-lg font-bold leading-snug text-primary">
               {d.cantidad} × {d.titulo}
             </p>
+            {d.detalle && <p className="text-sm font-semibold">{d.detalle}</p>}
             <p className="text-sm text-muted-foreground">A nombre de {d.comprador}</p>
           </div>
-          <div className="text-sm">
-            <p className="font-semibold">{d.negocio}</p>
-            {d.direccion && <p className="text-muted-foreground">{d.direccion}</p>}
-            <p className="mt-1">{d.ventana}</p>
+          <div className="flex items-start gap-3 text-sm">
+            <LogoNegocio nombre={d.negocio} logo={d.negocioLogo} tamano="md" />
+            <div>
+              <p className="font-semibold">{d.negocio}</p>
+              {d.direccion && <p className="text-muted-foreground">{d.direccion}</p>}
+              <p className="mt-1">{d.ventana}</p>
+            </div>
           </div>
           <div className="rounded-xl border-2 border-dashed border-primary/40 bg-background px-4 py-3 text-center">
             <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Código de recogida</p>

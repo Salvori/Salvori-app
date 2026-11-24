@@ -100,7 +100,7 @@ async function Lista({ searchParams }: { searchParams: Promise<{ n?: string; pub
                     {formatCOP(o.precio_final)} <span className="text-muted-foreground line-through">{formatCOP(o.precio_habitual)}</span>
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {o.vigente ? ESTADO[o.estado] : "Cerrada"} · {o.cupos_disponibles}/{o.cupos_total} cupos · {textoVentana(o.recogida_desde, o.recogida_hasta)}
+                    {o.vigente ? ESTADO[o.estado] : "Cerrada"} · {o.cupos_disponibles}/{o.cupos_total} unidades · {textoVentana(o.recogida_desde, o.recogida_hasta)}
                   </p>
                   <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1">
                     {o.vigente && (

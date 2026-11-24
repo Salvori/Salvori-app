@@ -3,10 +3,22 @@ import Link from "next/link";
 import { Clock, MapPin, Star } from "lucide-react";
 import { formatCOP } from "@/lib/formato";
 import { etiquetaFormato } from "@/lib/esquema-oferta";
-import { CATEGORIA_LABEL, textoDescuento, textoDistancia, textoVentana, urlFoto } from "@/lib/ofertas";
+import { CATEGORIA_LABEL, textoDescuento, textoDisponibles, textoDistancia, textoVentana, urlFoto } from "@/lib/ofertas";
+import { LogoNegocio } from "./logo-negocio";
 import type { OfertaTarjeta } from "@/lib/catalogo";
 
-export function TarjetaOferta({ oferta, km, prioridad = false }: { oferta: OfertaTarjeta; km: number; prioridad?: boolean }) {
+export function TarjetaOferta({
+  oferta,
+  km,
+  prioridad = false,
+  sinDistancia = false,
+}: {
+  oferta: OfertaTarjeta;
+  km: number;
+  prioridad?: boolean;
+  /** En la ficha del negocio la distancia no aplica (todas son del mismo local). */
+  sinDistancia?: boolean;
+}) {
   const agotada = oferta.estado === "agotada" || oferta.cupos_disponibles <= 0;
   const foto = urlFoto(oferta.foto_url);
 
@@ -24,7 +36,7 @@ export function TarjetaOferta({ oferta, km, prioridad = false }: { oferta: Ofert
           />
         )}
         <span className="absolute left-3 top-3 rounded-full bg-primary px-2.5 py-1 text-xs font-bold uppercase tracking-wide text-primary-foreground shadow-card">
-          {etiquetaFormato(oferta.formato)}
+          {etiquetaFormato(oferta.formato, oferta.lleva, oferta.paga)}
         </span>
         <span
           className="absolute right-3 top-3 rounded-full bg-accent px-3 py-1 font-display text-base font-extrabold text-accent-foreground shadow-card"
@@ -49,19 +61,25 @@ export function TarjetaOferta({ oferta, km, prioridad = false }: { oferta: Ofert
           )}
         </div>
         <h3 className="mt-2 font-display text-lg font-bold leading-snug text-primary">{oferta.titulo}</h3>
-        <p className="text-sm text-muted-foreground">{oferta.negocio.nombre}</p>
+        {oferta.tamano && <p className="text-sm font-semibold text-foreground/80">{oferta.tamano}</p>}
+        <Link href={`/n/${oferta.negocio.slug}`} className="mt-2 flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-primary">
+          <LogoNegocio nombre={oferta.negocio.nombre} logo={oferta.negocio.logo_url} tamano="sm" />
+          {oferta.negocio.nombre}
+        </Link>
         <div className="mt-4 flex items-baseline gap-2">
           <span className="font-display text-2xl font-extrabold">{formatCOP(oferta.precio_final)}</span>
           <span className="text-sm text-muted-foreground line-through">{formatCOP(oferta.precio_habitual)}</span>
         </div>
         <p className="mt-1 text-sm font-semibold text-mandarina-texto">
-          {agotada ? "Agotada" : oferta.cupos_disponibles === 1 ? "Queda 1" : `Quedan ${oferta.cupos_disponibles}`}
+          {agotada ? "Agotada" : textoDisponibles(oferta.cupos_disponibles, oferta.formato)}
         </p>
         <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
-          <span className="flex items-center gap-1">
-            <MapPin className="size-4" aria-hidden />
-            {textoDistancia(km)}
-          </span>
+          {!sinDistancia && (
+            <span className="flex items-center gap-1">
+              <MapPin className="size-4" aria-hidden />
+              {textoDistancia(km)}
+            </span>
+          )}
           <span className="flex items-center gap-1">
             <Clock className="size-4" aria-hidden />
             {textoVentana(oferta.recogida_desde, oferta.recogida_hasta)}
@@ -76,7 +94,7 @@ export function TarjetaOferta({ oferta, km, prioridad = false }: { oferta: Ofert
             href={`/oferta/${oferta.id}`}
             className="mt-5 rounded-full bg-primary py-2.5 text-center font-display font-bold text-primary-foreground transition-colors hover:bg-primary/90"
           >
-            Reservar combo
+            {oferta.formato === "promocion" ? "Reservar promoción" : "Reservar combo"}
           </Link>
         )}
       </div>

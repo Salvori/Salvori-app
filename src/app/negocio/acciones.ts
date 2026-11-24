@@ -22,7 +22,7 @@ const esquema = z.object({
 
 const OK: Record<string, string> = {
   confirmada: "Reserva confirmada. El comprador ya ve su código.",
-  rechazada: "Reserva rechazada. El cupo volvió a la oferta.",
+  rechazada: "Reserva rechazada. La unidad volvió a la oferta.",
   lista: "Marcada como lista para recoger.",
   entregada: "¡Entregada! Venta registrada.",
   no_recogida: "Marcada como no recogida.",

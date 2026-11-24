@@ -37,7 +37,7 @@ export function ProgramarOferta({ ofertaId, horaInicial, diasIniciales }: { ofer
           <input type="time" name="hora" required defaultValue={horaInicial} className="rounded-xl border bg-background px-4 py-3 text-base" />
         </label>
         <p className="text-xs text-muted-foreground">
-          Cada día elegido se publica una oferta igual, con la misma foto, precio, cupos y horario de recogida.
+          Cada día elegido se publica una oferta igual, con la misma foto, precio, unidades y horario de recogida.
         </p>
         <button disabled={enviando} className="rounded-full bg-primary py-3 font-display font-bold text-primary-foreground disabled:opacity-50">
           {enviando ? "Guardando…" : "Guardar programación"}
