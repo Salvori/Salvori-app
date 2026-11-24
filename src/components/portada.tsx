@@ -139,7 +139,7 @@ const BENEFICIOS_NEGOCIO = [
   { icono: QrCode, texto: "Ves tus cifras: vistas, reservas, entregas y calificación. Con enlace y QR propios." },
 ];
 
-export function ParaNegocios({ contacto }: { contacto: string }) {
+export function ParaNegocios({ contacto, precios }: { contacto: string; precios?: React.ReactNode }) {
   return (
     <section id="negocios" className="bg-primary py-14 text-primary-foreground" aria-labelledby="titulo-negocios">
       <div className={`${contenedor} grid gap-8 md:grid-cols-2 md:items-center`}>
@@ -148,6 +148,11 @@ export function ParaNegocios({ contacto }: { contacto: string }) {
           <h2 id="titulo-negocios" className="mt-2 font-display text-3xl font-extrabold md:text-4xl">
             Tus combos, frente a clientes que están cerca
           </h2>
+          {precios && (
+            <p data-testid="precios-negocios" className="mt-3 text-lg font-semibold">
+              {precios}
+            </p>
+          )}
           <a
             href={contacto}
             className="mt-6 inline-flex rounded-full bg-accent px-6 py-3 font-display text-lg font-extrabold text-accent-foreground"

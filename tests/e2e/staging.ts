@@ -111,6 +111,8 @@ export async function borrarNegocio(negocioId: string) {
   if (ids.length) await db.from("reservas").delete().in("oferta_id", ids);
   await db.from("ofertas").delete().eq("negocio_id", negocioId);
   await db.from("negocio_miembros").delete().eq("negocio_id", negocioId);
+  // Pagos de la mensualidad (la suscripción se borra en cascada con el negocio).
+  await db.from("pagos_mensualidad").delete().eq("negocio_id", negocioId);
   await db.from("negocios").delete().eq("id", negocioId);
   const { data: fotos } = await db.storage.from("ofertas").list(negocioId);
   if (fotos?.length) await db.storage.from("ofertas").remove(fotos.map((f) => `${negocioId}/${f.name}`));

@@ -7,6 +7,8 @@ test("la portada abre en español con el lema de Salvori", async ({ page }) => {
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(/Lo bueno\s*se aprovecha\./);
   // Sin Supabase: «Muy pronto en Popayán»; con Supabase: el listado de ofertas cercanas.
   await expect(page.getByText(/Muy pronto en Popayán|ofertas? cerca/).first()).toBeVisible();
+  // Para negocios: precio de la base (planes) o el texto fijo si no hay Supabase.
+  await expect(page.getByTestId("precios-negocios")).toHaveText("15 días gratis. Después, desde $ 50.000 al mes.");
 });
 
 test("una ruta inexistente muestra la página 404 en español", async ({ page }) => {
