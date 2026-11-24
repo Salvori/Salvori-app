@@ -43,3 +43,24 @@ export function enlaceWhatsApp(telefono: string | null | undefined, texto: strin
   const numero = telefonoWhatsApp(telefono);
   return numero ? `https://wa.me/${numero}?text=${encodeURIComponent(texto)}` : null;
 }
+
+export type DatosPedidoWhatsApp = {
+  titulo: string;
+  cantidad: number;
+  comprador: string;
+  /** Ventana de recogida ya en texto, p. ej. «Recoge hoy de 17:00 a 19:00». */
+  ventana: string;
+  codigo: string | null;
+};
+
+/** Mensaje que el comprador envía al negocio desde su WhatsApp (solo su nombre, nada más de él). */
+export function mensajePedidoWhatsApp(d: DatosPedidoWhatsApp): string {
+  return [
+    "Hola, te escribo desde Salvori. Acabo de reservar:",
+    `${d.cantidad} × ${d.titulo}`,
+    `A nombre de: ${d.comprador}`,
+    d.ventana,
+    `Código: ${d.codigo ?? "pendiente de confirmar"}`,
+    d.codigo ? "¡Nos vemos en el local!" : "¿Me la confirmas en Salvori, por favor?",
+  ].join("\n");
+}

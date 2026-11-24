@@ -63,7 +63,7 @@ test.describe("demo del comprador: combo editado, dirección, mapa y ticket", ()
     await comprador.goto("/");
     await expect(comprador.getByRole("link", { name: "Guarda tu dirección" })).toBeVisible();
     await comprador.getByRole("link", { name: "Guarda tu dirección" }).click();
-    await expect(comprador).toHaveURL(/\/perfil/);
+    await expect(comprador).toHaveURL(/\/perfil/, { timeout: 20_000 }); // la primera visita compila la ruta en dev
     await comprador.getByLabel("Tu dirección en Popayán").fill("Calle 5 # 4-50, Centro");
     await comprador.getByRole("button", { name: "Ubicar en el mapa" }).click();
     // En pruebas el geocodificador está apagado (SALVORI_GEOCODIFICADOR=desactivado): se mueve el pin a mano.
@@ -89,7 +89,7 @@ test.describe("demo del comprador: combo editado, dirección, mapa y ticket", ()
     await expect(tarjeta.locator(".line-through")).toHaveText("$ 9.000");
 
     // --- Mapa: su pin y el del negocio, con popup y enlace a la ficha ---
-    await comprador.getByRole("button", { name: "Mapa" }).click();
+    await comprador.getByRole("button", { name: "Mapa", exact: true }).click();
     const mapaOfertas = comprador.locator(".leaflet-container");
     await expect(mapaOfertas.locator(".pin-comprador")).toBeVisible();
     const pin = mapaOfertas.locator(`.pin-negocio[title="${nombreNegocio}"]`);

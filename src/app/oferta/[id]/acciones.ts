@@ -1,10 +1,12 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { z } from "zod";
+import { avisarNegocio } from "@/lib/avisos-negocio";
 import { mensajeAmigable } from "@/lib/errores";
 import { createClient } from "@/lib/supabase/server";
-import { usuarioActual } from "@/lib/sesion";
+import { origenActual, usuarioActual } from "@/lib/sesion";
 
 const esquema = z.object({
   ofertaId: z.uuid(),
@@ -28,13 +30,19 @@ export async function reservarOferta(_previo: EstadoReserva, form: FormData): Pr
   if (!(await usuarioActual())) redirect(`/entrar?next=${encodeURIComponent(`/oferta/${ofertaId}`)}`);
 
   const supabase = await createClient();
-  const { error } = await supabase.rpc("solicitar_reserva", {
+  const { data: reserva, error } = await supabase.rpc("solicitar_reserva", {
     oferta_id: ofertaId,
     cantidad,
     observaciones,
     origen,
   });
   if (error) return { error: mensajeAmigable(error) };
+
+  // Correo al negocio después de responder: si falla o falta el SMTP, la reserva ya quedó hecha.
+  if (reserva?.id) {
+    const origenSitio = await origenActual();
+    after(() => avisarNegocio(reserva.id, "nueva", origenSitio));
+  }
 
   redirect("/mis-reservas?nueva=1");
 }

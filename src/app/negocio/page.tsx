@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { Cabecera } from "@/components/cabecera";
+import { correosMiembros } from "@/lib/avisos-negocio";
+import { usuarioActual } from "@/lib/sesion";
+import { clienteServicio } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { fechaBogota, instanteActual } from "@/lib/tiempo";
 import { AvisosNegocio } from "./avisos";
@@ -12,12 +15,26 @@ export const metadata: Metadata = { title: "Reservas" };
 
 const ORDEN: Record<string, number> = { solicitada: 0, confirmada: 1, lista: 2, entregada: 3, no_recogida: 4, rechazada: 5, cancelada: 6 };
 
+/** A dónde llega el correo de cada reserva: los usuarios del negocio (ya verificado el acceso). */
+async function correosDelNegocio(negocioId: string): Promise<string[]> {
+  try {
+    const db = clienteServicio();
+    if (db) {
+      const correos = await correosMiembros(db, negocioId);
+      if (correos.length) return correos;
+    }
+  } catch {}
+  const usuario = await usuarioActual();
+  return usuario?.email ? [usuario.email] : [];
+}
+
 async function Bandeja({ searchParams }: { searchParams: Promise<{ n?: string }> }) {
   const { n } = await searchParams;
   const { negocio, negocios } = await contextoNegocio(n);
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("reservas_negocio", { negocio_id: negocio.id });
   if (error) throw new Error("No pudimos cargar las reservas.");
+  const correos = await correosDelNegocio(negocio.id);
 
   // Reservas de hoy (hora de Colombia), nuevas arriba.
   const ahora = instanteActual();
@@ -32,7 +49,7 @@ async function Bandeja({ searchParams }: { searchParams: Promise<{ n?: string }>
   return (
     <>
       <NavegacionNegocio actual="/negocio" negocio={negocio} negocios={negocios} />
-      <AvisosNegocio negocioId={negocio.id} pendientes={pendientes} />
+      <AvisosNegocio negocioId={negocio.id} pendientes={pendientes} correos={correos} />
       <div className="mb-4 grid grid-cols-3 gap-2 text-center">
         <div className="rounded-2xl bg-card p-3 shadow-card">
           <p className="font-display text-2xl font-extrabold text-mandarina-texto">{pendientes}</p>

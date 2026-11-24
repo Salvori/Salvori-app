@@ -2,12 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
-import { Clock, MapPin } from "lucide-react";
+import { Clock, MapPin, MessageCircle } from "lucide-react";
 import { Cabecera } from "@/components/cabecera";
 import { ESTADO_COMPRADOR, muestraCodigo, textoEstado, type EstadoReserva } from "@/lib/estados";
 import { formatCOP } from "@/lib/formato";
 import { textoVentana } from "@/lib/ofertas";
 import { usuarioActual } from "@/lib/sesion";
+import { enlaceWhatsApp, mensajePedidoWhatsApp } from "@/lib/texto";
 import { createClient } from "@/lib/supabase/server";
 import { salir } from "./acciones";
 import { BotonCancelar } from "./boton-cancelar";
@@ -30,9 +31,15 @@ async function Lista({ searchParams }: { searchParams: Promise<{ nueva?: string 
   const { nueva } = await searchParams;
 
   const supabase = await createClient();
-  const [{ data, error }, { data: cuenta }] = await Promise.all([supabase.rpc("mis_reservas"), supabase.auth.getUser()]);
+  const [{ data, error }, { data: cuenta }, { data: contactos }] = await Promise.all([
+    supabase.rpc("mis_reservas"),
+    supabase.auth.getUser(),
+    // Si la función aún no existe en este entorno, simplemente no hay botón de WhatsApp.
+    supabase.rpc("contacto_negocios_comprador"),
+  ]);
   if (error) throw new Error("No pudimos cargar tus reservas.");
   const reservas = data ?? [];
+  const whatsapp = new Map((contactos ?? []).map((c) => [c.negocio_id, c.telefono_whatsapp]));
   const comprador = (cuenta.user?.user_metadata?.nombre as string | undefined)?.trim() || (usuario.email ?? "").split("@")[0] || "Comprador";
 
   return (
@@ -43,7 +50,8 @@ async function Lista({ searchParams }: { searchParams: Promise<{ nueva?: string 
       />
       {nueva && (
         <p className="mb-4 rounded-2xl bg-secondary px-4 py-3 font-semibold text-secondary-foreground" role="status">
-          ¡Reserva enviada! Te avisamos aquí cuando el negocio la confirme.
+          ¡Reserva enviada! Te avisamos por correo y aquí cuando el negocio la confirme. Avísale por WhatsApp para que
+          la vea más rápido.
         </p>
       )}
       {reservas.length === 0 ? (
@@ -58,6 +66,19 @@ async function Lista({ searchParams }: { searchParams: Promise<{ nueva?: string 
           {reservas.map((r) => {
             const estado = r.estado as EstadoReserva;
             const info = ESTADO_COMPRADOR[estado];
+            const enCurso = estado === "solicitada" || estado === "confirmada" || estado === "lista";
+            const enlaceWa = enCurso
+              ? enlaceWhatsApp(
+                  whatsapp.get(r.negocio_id),
+                  mensajePedidoWhatsApp({
+                    titulo: r.titulo,
+                    cantidad: r.cantidad,
+                    comprador,
+                    ventana: textoVentana(r.recogida_desde, r.recogida_hasta),
+                    codigo: muestraCodigo(estado) ? r.codigo : null,
+                  }),
+                )
+              : null;
             return (
               <li key={r.id} className="rounded-2xl bg-card p-5 shadow-card" data-estado={estado}>
                 <span className={`inline-block rounded-full px-3 py-1 text-sm font-bold ${TONO[info.tono]}`}>
@@ -100,6 +121,16 @@ async function Lista({ searchParams }: { searchParams: Promise<{ nueva?: string 
                   <p className="mt-3 text-sm font-semibold text-primary">
                     Ahorraste {formatCOP((r.precio_habitual_unitario - r.precio_unitario) * r.cantidad)}
                   </p>
+                )}
+                {enlaceWa && (
+                  <a
+                    href={enlaceWa}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-4 flex items-center justify-center gap-2 rounded-full bg-primary py-3 font-display font-bold text-primary-foreground"
+                  >
+                    <MessageCircle className="size-5" aria-hidden /> Enviar mi pedido por WhatsApp
+                  </a>
                 )}
                 {estado === "solicitada" && (
                   <div className="mt-4">

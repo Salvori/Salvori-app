@@ -35,6 +35,15 @@ export default function Privacidad() {
             </p>
           </section>
           <section>
+            <h2 className="font-display text-xl font-bold text-primary">Avisos de combos cerca</h2>
+            <p className="mt-2">
+              Si pides que te avisemos de combos cercanos, guardamos tu correo, el punto que elegiste (tu dirección, tu
+              ubicación del momento o un punto en el mapa) y la distancia, solo para escribirte cuando un negocio publique
+              un combo a esa distancia, como máximo una vez cada 6 horas. Te das de baja con el enlace de cualquier correo
+              o desde tu perfil, y en ese momento borramos esos datos. Los negocios no ven esta información.
+            </p>
+          </section>
+          <section>
             <h2 className="font-display text-xl font-bold text-primary">Tus derechos</h2>
             <p className="mt-2">
               Puedes conocer, actualizar, rectificar y pedir la supresión de tus datos, solicitar prueba de tu
