@@ -7,6 +7,7 @@ import { connection } from "next/server";
 import { Suspense } from "react";
 import { ChefHat, Clock, Mail, MapPin, MessageCircle, Star, Store } from "lucide-react";
 import { Cabecera } from "@/components/cabecera";
+import { MedirEvento } from "@/components/medir-evento";
 import { LogoNegocio } from "@/components/logo-negocio";
 import { etiquetaFormato } from "@/lib/esquema-oferta";
 import { COOKIE_ORIGEN, origenValido } from "@/lib/origen";
@@ -58,6 +59,18 @@ async function Ficha({ params }: { params: Promise<{ id: string }> }) {
 
   return (
     <article>
+      <MedirEvento
+        clave={`vista:${o.id}`}
+        evento="view_item"
+        datos={{
+          negocio_slug: o.negocio.slug,
+          oferta_id: o.id,
+          origen,
+          categoria: o.categoria,
+          titulo: o.titulo,
+          valor: o.precio_final,
+        }}
+      />
       <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-muted md:aspect-[16/9]">
         {foto && <Image src={foto} alt={o.titulo} fill priority sizes="(min-width: 768px) 720px, 100vw" className="object-cover" />}
         <span className="absolute left-3 top-3 rounded-full bg-primary px-3 py-1 text-xs font-bold uppercase tracking-wide text-primary-foreground">

@@ -79,7 +79,7 @@ async function Bandeja({ searchParams }: { searchParams: Promise<{ n?: string }>
       ) : (
         <ul className="space-y-4">
           {reservas.map((r) => (
-            <TarjetaReserva key={`${r.id}-${r.estado}`} r={r} ahora={ahora} />
+            <TarjetaReserva key={`${r.id}-${r.estado}`} r={r} ahora={ahora} negocioSlug={negocio.slug} />
           ))}
         </ul>
       )}

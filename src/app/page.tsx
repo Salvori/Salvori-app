@@ -4,6 +4,7 @@ import { Cabecera } from "@/components/cabecera";
 import { ExploradorOfertas } from "@/components/explorador-ofertas";
 import { FormularioInteresados } from "@/components/formulario-interesados";
 import { LineaPlanes } from "@/components/linea-planes";
+import { PreferenciasCookies } from "@/components/medicion";
 import { ComoFunciona, Confianza, EjemploCombo, NegociosAliados, ParaNegocios, Preguntas } from "@/components/portada";
 import { ofertasPublicas } from "@/lib/catalogo";
 import { TEXTO_PLANES_FIJO } from "@/lib/planes";
@@ -147,6 +148,7 @@ export default function Portada() {
         <a href="/privacidad" className="underline underline-offset-4">
           Tratamiento de datos
         </a>
+        <PreferenciasCookies />
       </footer>
     </div>
   );

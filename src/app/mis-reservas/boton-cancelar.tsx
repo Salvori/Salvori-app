@@ -1,11 +1,26 @@
 "use client";
 
 import { useActionState } from "react";
+import { medir, type DatosEvento } from "@/lib/medicion";
 import { cancelarReserva, type EstadoCancelar } from "./acciones";
 
 /** `confirmada`: ya tenía código; cancelar ahora baja el puntaje de cumplimiento (vale 3). */
-export function BotonCancelar({ reservaId, confirmada = false }: { reservaId: string; confirmada?: boolean }) {
-  const [estado, accion, enviando] = useActionState<EstadoCancelar, FormData>(cancelarReserva, null);
+export function BotonCancelar({
+  reservaId,
+  confirmada = false,
+  medicion,
+}: {
+  reservaId: string;
+  confirmada?: boolean;
+  /** Datos del evento «reserva_cancelada» (sin datos personales). */
+  medicion?: DatosEvento;
+}) {
+  // La acción devuelve null si canceló: ahí se mide, una vez, cuando la UI recibe el resultado.
+  const [estado, accion, enviando] = useActionState<EstadoCancelar, FormData>(async (previo, form) => {
+    const r = await cancelarReserva(previo, form);
+    if (r === null) medir("reserva_cancelada", medicion);
+    return r;
+  }, null);
   return (
     <form
       action={accion}
