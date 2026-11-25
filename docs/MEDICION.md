@@ -36,7 +36,7 @@ Los que pasan en Server Actions se miden en el cliente cuando la pantalla recibe
 1. Entra a [analytics.google.com](https://analytics.google.com) con la cuenta de Google de Salvori → **Administrar** → **Crear** → **Propiedad**.
 2. Nombre: **Salvori web**. Zona horaria: **Colombia (GMT-05:00)**. Moneda: **Peso colombiano (COP)**.
 3. Datos de la empresa: sector «Comida y bebida», tamaño pequeño. Objetivos: «Generar clientes potenciales» y «Analizar el comportamiento».
-4. **Flujo de datos** → **Web** → URL del sitio (hoy el dominio de Vercel; cuando llegue el `.co`, se agrega o cambia) y nombre «Salvori web».
+4. **Flujo de datos** → **Web** → URL `https://salvori.co` y nombre «Salvori web». Ya creado el 24 nov 2026: propiedad «Salvori-G4» (`properties/565818710`), ID de medición `G-L7LY1340LG`.
 5. Deja activa la **medición mejorada** (cuenta las páginas al navegar dentro de la app).
 6. Copia el **ID de medición** (`G-XXXXXXXXXX`): es `NEXT_PUBLIC_GA_ID`.
 7. Opcional y recomendado: **Administrar → Eventos → Marcar como evento clave** `reserva_solicitada` y `reserva_entregada` (aparecen cuando llegan por primera vez).
@@ -48,7 +48,7 @@ Los que pasan en Server Actions se miden en el cliente cuando la pantalla recibe
 1. Entra a [business.facebook.com](https://business.facebook.com) con el portafolio comercial de Salvori → **Administrador de eventos** → **Conectar orígenes de datos** → **Web** → **Píxel de Meta**.
 2. Nombre: «Salvori web». Cuando pida el método, elige **instalar el código manualmente** (el código ya está en la app; solo se necesita el ID).
 3. Copia el **identificador del píxel** (solo números): es `NEXT_PUBLIC_META_PIXEL_ID`.
-4. La verificación del dominio en Meta se hace cuando llegue el `.co` (irá en `docs/PRODUCCION.md`, sección «Cuando llegue el .co», del mismo P7).
+4. Verificar el dominio `salvori.co` en Meta (Configuración del negocio → Seguridad de la marca → Dominios), con un registro TXT en GoDaddy.
 5. Para probar: **Administrador de eventos → Probar eventos**, abre el sitio, acepta cookies y navega a una oferta: debe llegar `PageView` y `ViewContent`.
 
 ## 3. Variables en Vercel
