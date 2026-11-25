@@ -2,10 +2,12 @@
 
 import { useActionState, useState } from "react";
 import { formatCOP, formatHora } from "@/lib/formato";
+import { medir, type EventoMedicion } from "@/lib/medicion";
 import { gestionarReserva, type EstadoGestion } from "./acciones";
 
 export type ReservaBandeja = {
   id: string;
+  oferta_id?: string | null;
   titulo: string;
   nombre_comprador: string;
   cantidad: number;
@@ -51,22 +53,45 @@ const ETIQUETA: Record<string, string> = {
   no_recogida: "No recogida",
 };
 
+/** Estado nuevo → evento de medición (los demás no se miden). */
+const EVENTO_ESTADO: Partial<Record<string, EventoMedicion>> = {
+  confirmada: "reserva_confirmada",
+  entregada: "reserva_entregada",
+  no_recogida: "no_recogida",
+};
+
 const btn = "rounded-full px-4 py-3 font-display font-bold disabled:opacity-50";
 
 export function TarjetaReserva({
   r,
   ahora,
   negocio,
+  negocioSlug,
   children,
 }: {
   r: ReservaBandeja;
+  /** Slug del negocio para los eventos de medición. */
+  negocioSlug?: string;
   ahora: number;
   /** Nombre del negocio, cuando la bandeja mezcla varios (admin). */
   negocio?: string;
   /** Acciones extra al pie (admin: «Avisar por WhatsApp»). */
   children?: React.ReactNode;
 }) {
-  const [estado, accion, enviando] = useActionState<EstadoGestion, FormData>(gestionarReserva, null);
+  // Se mide cuando la UI recibe el resultado correcto de la Server Action (una vez por envío).
+  const [estado, accion, enviando] = useActionState<EstadoGestion, FormData>(async (previo, form) => {
+    const res = await gestionarReserva(previo, form);
+    const evento = res?.ok ? EVENTO_ESTADO[String(form.get("estado"))] : undefined;
+    if (evento) {
+      medir(evento, {
+        negocio_slug: negocioSlug,
+        oferta_id: r.oferta_id,
+        cantidad: r.cantidad,
+        valor: evento === "reserva_entregada" ? r.precio_unitario * r.cantidad : null,
+      });
+    }
+    return res;
+  }, null);
   const [modo, setModo] = useState<"nada" | "rechazar" | "entregar" | "incumplir">("nada");
   const minutos = Math.floor((ahora - new Date(r.solicitada_en).getTime()) / 60000);
   const demorada = r.estado === "solicitada" && minutos >= 15;

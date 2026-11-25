@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Cabecera } from "@/components/cabecera";
+import { PreferenciasCookies } from "@/components/medicion";
 
 export const metadata: Metadata = { title: "Tratamiento de datos personales" };
 
@@ -43,6 +44,21 @@ export default function Privacidad() {
               o desde tu perfil, y en ese momento borramos esos datos. Los negocios no ven esta información.
             </p>
           </section>
+          <section id="cookies" className="scroll-mt-20">
+            <h2 className="font-display text-xl font-bold text-primary">Analítica y cookies</h2>
+            <p className="mt-2">
+              Usamos cookies esenciales para mantener tu sesión y recordar de qué negocio llegaste a una reserva. Con tu
+              autorización, que puedes dar o negar en el aviso de cookies, también usamos Google Analytics 4 y el píxel
+              de Meta para saber cuántas personas ven las ofertas y cuántas reservas se hacen, sin enviarles tu correo,
+              tu teléfono ni tu nombre: solo datos de la oferta y del negocio (por ejemplo, su identificador, el valor y
+              de dónde llegaste). Si eliges «Solo esenciales», no se cargan. Además medimos visitas y velocidad del
+              sitio con Vercel Analytics y Speed Insights, que no usan cookies ni te identifican. Puedes cambiar tu
+              elección cuando quieras.
+            </p>
+            <p className="mt-2">
+              <PreferenciasCookies className="font-semibold text-primary underline underline-offset-4" />
+            </p>
+          </section>
           <section>
             <h2 className="font-display text-xl font-bold text-primary">Tus derechos</h2>
             <p className="mt-2">
@@ -58,7 +74,7 @@ export default function Privacidad() {
               los plazos de ley.
             </p>
           </section>
-          <p className="text-sm text-muted-foreground">Versión 2026-11-04.</p>
+          <p className="text-sm text-muted-foreground">Versión 2026-11-24.</p>
         </div>
       </main>
     </div>

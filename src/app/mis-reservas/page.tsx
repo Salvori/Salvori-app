@@ -5,6 +5,7 @@ import { Suspense } from "react";
 import { Clock, MapPin, MessageCircle, Star } from "lucide-react";
 import { Cabecera } from "@/components/cabecera";
 import { LogoNegocio } from "@/components/logo-negocio";
+import { MedirEvento } from "@/components/medir-evento";
 import { etiquetaFormato } from "@/lib/esquema-oferta";
 import { ESTADO_COMPRADOR, muestraCodigo, textoEstado, type EstadoReserva } from "@/lib/estados";
 import { formatCOP } from "@/lib/formato";
@@ -29,10 +30,12 @@ const TONO: Record<string, string> = {
   mal: "bg-destructive/10 text-destructive",
 };
 
-async function Lista({ searchParams }: { searchParams: Promise<{ nueva?: string }> }) {
+type Busqueda = { nueva?: string; origen?: string };
+
+async function Lista({ searchParams }: { searchParams: Promise<Busqueda> }) {
   const usuario = await usuarioActual();
   if (!usuario) redirect("/entrar?next=/mis-reservas");
-  const { nueva } = await searchParams;
+  const { nueva, origen: origenNueva } = await searchParams;
 
   const supabase = await createClient();
   const [{ data, error }, { data: cuenta }, { data: contactos }] = await Promise.all([
@@ -45,6 +48,7 @@ async function Lista({ searchParams }: { searchParams: Promise<{ nueva?: string 
   const reservas = data ?? [];
   const ahora = instanteActual();
   const whatsapp = new Map((contactos ?? []).map((c) => [c.negocio_id, c.telefono_whatsapp]));
+  const reservaNueva = nueva ? reservas.find((r) => r.id === nueva) : undefined;
   const comprador = (cuenta.user?.user_metadata?.nombre as string | undefined)?.trim() || (usuario.email ?? "").split("@")[0] || "Comprador";
 
   return (
@@ -53,6 +57,19 @@ async function Lista({ searchParams }: { searchParams: Promise<{ nueva?: string 
         compradorId={usuario.id}
         hayEnCurso={reservas.some((r) => ["solicitada", "confirmada", "lista"].includes(r.estado))}
       />
+      {reservaNueva && (
+        <MedirEvento
+          clave={`solicitada:${reservaNueva.id}`}
+          evento="reserva_solicitada"
+          datos={{
+            negocio_slug: reservaNueva.negocio_slug,
+            oferta_id: reservaNueva.oferta_id,
+            origen: origenNueva ?? "directo",
+            cantidad: reservaNueva.cantidad,
+            valor: reservaNueva.precio_unitario * reservaNueva.cantidad,
+          }}
+        />
+      )}
       {nueva && (
         <p className="mb-4 rounded-2xl bg-secondary px-4 py-3 font-semibold text-secondary-foreground" role="status">
           ¡Reserva enviada! Te avisamos por correo y aquí cuando el negocio la confirme. Avísale por WhatsApp para que
@@ -157,12 +174,12 @@ async function Lista({ searchParams }: { searchParams: Promise<{ nueva?: string 
                 )}
                 {estado === "solicitada" && (
                   <div className="mt-4">
-                    <BotonCancelar reservaId={r.id} />
+                    <BotonCancelar reservaId={r.id} medicion={{ negocio_slug: r.negocio_slug, oferta_id: r.oferta_id }} />
                   </div>
                 )}
                 {(estado === "confirmada" || estado === "lista") && new Date(r.recogida_hasta).getTime() > ahora && (
                   <div className="mt-3 text-center">
-                    <BotonCancelar reservaId={r.id} confirmada />
+                    <BotonCancelar reservaId={r.id} confirmada medicion={{ negocio_slug: r.negocio_slug, oferta_id: r.oferta_id }} />
                   </div>
                 )}
               </li>
@@ -186,7 +203,7 @@ export default function MisReservas(props: PageProps<"/mis-reservas">) {
       <main className="mx-auto w-full max-w-2xl flex-1 px-5 pb-16 pt-2">
         <h1 className="mb-5 font-display text-3xl font-extrabold text-primary">Mis reservas</h1>
         <Suspense fallback={<div className="h-40 animate-pulse rounded-2xl bg-muted" />}>
-          <Lista searchParams={props.searchParams as Promise<{ nueva?: string }>} />
+          <Lista searchParams={props.searchParams as Promise<Busqueda>} />
         </Suspense>
       </main>
     </div>

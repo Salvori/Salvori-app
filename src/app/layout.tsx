@@ -1,5 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import { Manrope, Source_Sans_3 } from "next/font/google";
+import { Suspense } from "react";
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
+import { Medicion } from "@/components/medicion";
 import "./globals.css";
 
 const manrope = Manrope({
@@ -41,7 +45,15 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="es-CO" className={`${manrope.variable} ${sourceSans.variable} h-full antialiased`}>
-      <body className="flex min-h-full flex-col">{children}</body>
+      <body className="flex min-h-full flex-col">
+        {children}
+        {/* GA4 y píxel de Meta solo con consentimiento; Vercel Analytics y Speed Insights no usan cookies. */}
+        <Suspense>
+          <Medicion />
+          <Analytics />
+          <SpeedInsights />
+        </Suspense>
+      </body>
     </html>
   );
 }

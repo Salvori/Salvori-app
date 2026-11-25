@@ -51,5 +51,8 @@ export async function reservarOferta(_previo: EstadoReserva, form: FormData): Pr
     after(() => avisarNegocio(reserva.id, "nueva", origenSitio));
   }
 
-  redirect("/mis-reservas?nueva=1");
+  // «reserva_solicitada» se mide en el cliente al llegar a /mis-reservas (una sola vez por reserva).
+  const destino = new URLSearchParams({ nueva: reserva?.id ?? "1" });
+  if (origen !== "directo") destino.set("origen", origen.slice(0, 100));
+  redirect(`/mis-reservas?${destino}`);
 }

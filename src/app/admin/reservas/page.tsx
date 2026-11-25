@@ -131,7 +131,7 @@ export default async function AdminReservas(props: PageProps<"/admin/reservas">)
           {reservas.map(({ r, negocio }) => {
             const whatsapp = enlaceWhatsApp(negocio.telefono_whatsapp, textoAviso(r, negocio, origen));
             return (
-              <TarjetaReserva key={`${r.id}-${r.estado}`} r={r} ahora={ahora} negocio={negocio.nombre}>
+              <TarjetaReserva key={`${r.id}-${r.estado}`} r={r} ahora={ahora} negocio={negocio.nombre} negocioSlug={negocio.slug}>
                 {whatsapp ? (
                   <a
                     href={whatsapp}
